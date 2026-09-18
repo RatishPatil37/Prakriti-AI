@@ -28,52 +28,57 @@ The platform couples an authoritative scientific knowledge layer in **Qdrant Clo
 ```mermaid
 flowchart TD
     subgraph Client["Frontend: React 18 + TypeScript + Vite + Tailwind"]
-        UI[Luxury Nature-Tech Shell & Chat Panel]
-        EvidenceUI[Scientific Evidence Rail & Telemetry HUD]
-        ContextUI[Site Context Drawer: SOC %, pH, Rain, Tillage]
-        AuthUI[Tenant Isolation Switcher: Public / User A / User B]
-        SSEConsumer[@microsoft/fetch-event-source Client]
+        UI["Luxury Nature-Tech Shell & Chat Panel"]
+        EvidenceUI["Scientific Evidence Rail & Telemetry HUD"]
+        ContextUI["Site Context Drawer: SOC %, pH, Rain, Tillage"]
+        AuthUI["Tenant Isolation Switcher: Public / User A / User B"]
+        SSEConsumer["fetch-event-source SSE Client"]
     end
 
     subgraph Backend["Backend: FastAPI (Stateless on Render)"]
-        RateLimit[Abuse Controls: IP & User Rate Limiter]
-        AuthMiddleware[JWKS / Asymmetric JWT Verification -> verified_user_id]
-        Completeness[Zero-LLM Completeness Engine]
-        Orchestrator[Query Orchestrator & TTFT Instrumentation]
-        EvidenceGate[Evidence Quality Gate: Strong / Moderate / Limited / Insufficient]
-        LLMRouter[LLM Router: Gemini 3.1 Flash-Lite]
-        DisconnectHandler[Client Disconnect Detector & Cancellation Task]
+        RateLimit["Abuse Controls: IP & User Rate Limiter"]
+        AuthMiddleware["JWKS / Asymmetric JWT Verification"]
+        Completeness["Zero-LLM Completeness Engine"]
+        Orchestrator["Query Orchestrator & TTFT Instrumentation"]
+        EvidenceGate["Evidence Quality Gate: Strong / Moderate / Limited"]
+        LLMRouter["LLM Router: Gemini 3.1 Flash-Lite"]
+        DisconnectHandler["Client Disconnect Detector & Cancellation Task"]
     end
 
     subgraph Knowledge["Knowledge Layer: Qdrant Cloud (darukaa_knowledge)"]
-        DenseIndex[Dense Vectors: all-MiniLM-L6-v2 384d, Cosine]
-        SparseIndex[Sparse Vectors: Qdrant/bm25 Term Vectors]
-        RRF[Server-Side Reciprocal Rank Fusion RRF]
-        PublicKB[Authoritative Corpus: IPCC, IPBES, IUCN, FAO]
-        PrivateDocs[Tenant-Isolated Private Documents]
+        DenseIndex["Dense Vectors: all-MiniLM-L6-v2 (384d, Cosine)"]
+        SparseIndex["Sparse Vectors: Qdrant BM25 Term Vectors"]
+        RRF["Server-Side Reciprocal Rank Fusion (RRF)"]
+        PublicKB["Authoritative Corpus: IPCC, IPBES, IUCN, FAO"]
+        PrivateDocs["Tenant-Isolated Private Documents"]
     end
 
     subgraph Persistence["Storage & Database: Supabase"]
-        SupabaseDB[(Supabase Postgres: Explicit owner_user_id scoping + RLS)]
-        SupabaseStorage[(Supabase Storage: Private PDF Vault)]
+        SupabaseDB[("Supabase Postgres: Explicit owner_user_id scoping + RLS")]
+        SupabaseStorage[("Supabase Storage: Private PDF Vault")]
     end
 
-    UI -->|HTTPS Query / JWT Bearer| RateLimit
+    UI --> RateLimit
     RateLimit --> AuthMiddleware
     AuthMiddleware --> Orchestrator
     Orchestrator --> Completeness
-    Completeness -->|Incomplete Context| SSEConsumer
-    Completeness -->|Sufficient Context| DenseIndex & SparseIndex
-    PublicKB --> DenseIndex & SparseIndex
-    PrivateDocs --> DenseIndex & SparseIndex
-    DenseIndex & SparseIndex --> RRF
+    Completeness --> SSEConsumer
+    Completeness --> DenseIndex
+    Completeness --> SparseIndex
+    PublicKB --> DenseIndex
+    PublicKB --> SparseIndex
+    PrivateDocs --> DenseIndex
+    PrivateDocs --> SparseIndex
+    DenseIndex --> RRF
+    SparseIndex --> RRF
     RRF --> EvidenceGate
     EvidenceGate --> LLMRouter
     LLMRouter --> DisconnectHandler
-    DisconnectHandler -->|SSE Stream: status, evidence, token, done| SSEConsumer
-    SSEConsumer --> UI & EvidenceUI
-    Orchestrator -.->|Scoped Persist| SupabaseDB
-    UI -->|Upload Private PDF| Backend
+    DisconnectHandler --> SSEConsumer
+    SSEConsumer --> UI
+    SSEConsumer --> EvidenceUI
+    Orchestrator -.-> SupabaseDB
+    UI --> Backend
     Backend --> SupabaseStorage
 ```
 
@@ -102,8 +107,10 @@ flowchart TD
 ### 3. Conversational Intelligence & Reasoning
 - **Zero-LLM Fast Clarification Filter:** When an intervention request lacks critical ecological variables (e.g. soil organic carbon %, rainfall, land use), the system triggers an immediate clarification event with targeted parameter questions in **sub-5ms without burning LLM tokens**.
 - **Multi-Metric Causal Reasoning Scaffold:**
-  - Ecological restoration queries connect $\ge 3$ environmental dimensions:
-    $$\text{Tillage/Cover Crops} \longrightarrow \text{Soil Carbon \& Moisture Aggregation} \longrightarrow \text{Pollinator \& Microbial Biodiversity}$$
+  - Ecological restoration queries explicitly connect $\ge 3$ environmental dimensions:
+  
+  > 🌾 **Tillage & Cover Crops** ➔ 💧 **Soil Carbon & Moisture Aggregation** ➔ 🐝 **Pollinator & Microbial Biodiversity**
+
   - Conceptual queries (e.g., *"What is soil organic carbon?"*) provide direct, unforced scientific explanations without synthetic multi-metric extrapolation.
 - **Evidence Quality Gate:** Qualitatively evaluates grounding (`Strong`, `Moderate`, `Limited`, `Insufficient`) based on source corroboration, provenance, and primary fieldwork.
 - **Streaming Citation Integrity Audit:** Emits an authoritative pre-generation citation manifest `[S1]`, `[S2]`, ... in real-time. Post-stream audit verifies that no unlisted citations are cited by the LLM.
