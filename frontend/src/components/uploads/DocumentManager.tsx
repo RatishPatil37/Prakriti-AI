@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Trash2, FileText, X, AlertTriangle, CheckCircle, Lock, ShieldAlert } from 'lucide-react';
+import { Upload, Trash2, FileText, X, AlertTriangle, CheckCircle, Lock } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -26,14 +26,12 @@ export const DocumentManager: React.FC<Props> = ({ isOpen, onClose, authToken })
         setDocuments(data.documents || []);
       }
     } catch (err) {
-      console.error('Failed to fetch user documents:', err);
+      console.error('Failed to fetch documents:', err);
     }
   };
 
   useEffect(() => {
-    if (isOpen && authToken) {
-      fetchDocuments();
-    }
+    if (isOpen && authToken) fetchDocuments();
   }, [isOpen, authToken]);
 
   if (!isOpen) return null;
@@ -62,10 +60,12 @@ export const DocumentManager: React.FC<Props> = ({ isOpen, onClose, authToken })
       }
 
       const data = await res.json();
-      setSuccess(`Indexed "${file.name}" (${data.chunks_indexed} chunks) into your private vault.`);
+      setSuccess(`"${file.name}" uploaded and indexed (${data.chunks_indexed} sections).`);
       fetchDocuments();
+      // Clear file input
+      e.target.value = '';
     } catch (err: any) {
-      setError(err.message || 'Upload error');
+      setError(err.message || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -87,129 +87,113 @@ export const DocumentManager: React.FC<Props> = ({ isOpen, onClose, authToken })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn">
-      <div className="bg-[#07130E] border border-emerald-500/25 rounded-3xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-[0_20px_80px_rgba(0,0,0,0.8)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fadeIn">
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-emerald-500/15">
+        <div className="flex items-center justify-between p-5 border-b border-[var(--color-border)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-emerald-500/15 text-[#A9EE70]">
-              <Lock className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border)] flex items-center justify-center">
+              <Lock className="w-4 h-4 text-[var(--color-accent-light)]" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white tracking-tight">Private Document Vault</h3>
-              <p className="text-xs text-slate-400 font-mono">
-                Isolated Tenant Ingestion with Dense + Sparse Hybrid Indexing
+              <h3 className="text-sm font-semibold text-[var(--color-text-primary)] font-sans">My Documents</h3>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Private — only visible to you
               </p>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition"
-          >
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto space-y-5 flex-1">
-          {/* Tenant boundary guarantees banner */}
-          <div className="bg-emerald-950/40 border border-emerald-500/20 rounded-2xl p-4 text-xs text-slate-300 space-y-1.5">
-            <div className="font-mono font-bold text-[#A9EE70] uppercase tracking-wider flex items-center gap-1.5">
-              <span>Tenant Boundary Guarantees</span>
-            </div>
-            <p className="leading-relaxed text-slate-400">
-              Private uploads are indexed into Qdrant Cloud filtered strictly by your verified JWT subject UUID. Other tenants can never access or retrieve your private records.
-            </p>
-            <div className="font-mono text-[11px] text-emerald-400 pt-1">
-              Limits: Max 25MB • Max 100 pages • Max 10 documents per user
-            </div>
-          </div>
-
+        <div className="p-5 overflow-y-auto space-y-4 flex-1">
           {!authToken ? (
-            <div className="p-6 border border-dashed border-amber-500/30 rounded-2xl bg-amber-950/20 text-center space-y-2">
-              <ShieldAlert className="w-6 h-6 text-amber-400 mx-auto" />
-              <div className="text-xs font-mono font-bold text-amber-300">
-                Tenant Persona Required for Private Vault
-              </div>
-              <p className="text-xs text-slate-400">
-                You are currently in Public Anonymous mode. To test private document isolation, switch to <strong>User A</strong> or <strong>User B</strong> in the left sidebar switcher.
-              </p>
+            <div className="py-10 text-center space-y-2">
+              <Lock className="w-8 h-8 text-[var(--color-text-muted)] mx-auto" />
+              <p className="text-sm text-[var(--color-text-secondary)]">Sign in to upload and manage documents.</p>
             </div>
           ) : (
             <>
-              {/* Upload Dropzone */}
-              <div className="border-2 border-dashed border-emerald-500/25 rounded-2xl p-6 text-center hover:border-[#A9EE70]/60 hover:bg-[#0B1A14]/40 transition-all duration-300 group">
+              {/* Privacy note */}
+              <div className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl p-3.5 text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                Your documents are private and encrypted. They are only used to answer your questions and cannot be accessed by other users.
+                <span className="block mt-1 text-[var(--color-text-muted)]">Limits: PDF, TXT, or MD · Max 25 MB · Max 100 pages · Up to 10 documents</span>
+              </div>
+
+              {/* Upload dropzone */}
+              <div className="border-2 border-dashed border-[var(--color-border)] rounded-xl p-6 text-center hover:border-[var(--color-accent)] transition-colors group">
                 <input
                   type="file"
                   accept=".pdf,.txt,.md"
                   onChange={handleFileUpload}
                   disabled={uploading}
                   className="hidden"
-                  id="file-vault-upload"
+                  id="doc-upload-input"
                 />
                 <label
-                  htmlFor="file-vault-upload"
-                  className={`cursor-pointer flex flex-col items-center gap-2.5 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  htmlFor="doc-upload-input"
+                  className={`cursor-pointer flex flex-col items-center gap-2 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <div className="p-3 rounded-2xl bg-emerald-500/10 text-[#A9EE70] group-hover:scale-110 group-hover:bg-[#A9EE70]/15 transition-all">
-                    <Upload className="w-6 h-6" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border)] flex items-center justify-center group-hover:border-[var(--color-accent)] transition">
+                    <Upload className="w-5 h-5 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent-light)] transition" />
                   </div>
-                  <span className="text-sm font-semibold text-white group-hover:text-[#A9EE70] transition">
-                    {uploading ? 'Parsing & Indexing into Qdrant Cloud...' : 'Upload Environmental Report (PDF, TXT, MD)'}
-                  </span>
-                  <span className="text-xs text-slate-400 font-mono">
-                    Click to browse local files
-                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                      {uploading ? 'Processing…' : 'Upload a document'}
+                    </p>
+                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                      Click to browse or drag and drop
+                    </p>
+                  </div>
                 </label>
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 p-3 text-xs bg-rose-950/60 text-rose-300 border border-rose-500/30 rounded-xl font-mono">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-400" />
-                  <span>{error}</span>
+                <div className="flex items-center gap-2 p-3 text-xs bg-rose-950/40 text-rose-400 border border-rose-500/20 rounded-xl">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  {error}
                 </div>
               )}
-
               {success && (
-                <div className="flex items-center gap-2 p-3 text-xs bg-emerald-950/60 text-[#A9EE70] border border-emerald-500/30 rounded-xl font-mono">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 text-[#A9EE70]" />
-                  <span>{success}</span>
+                <div className="flex items-center gap-2 p-3 text-xs bg-[var(--color-accent-subtle)] text-[var(--color-accent-light)] border border-[rgba(78,136,98,0.25)] rounded-xl">
+                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                  {success}
                 </div>
               )}
 
-              {/* Document List */}
-              <div className="space-y-2.5 pt-2">
-                <div className="text-[11px] font-mono font-bold uppercase tracking-[0.15em] text-slate-400 flex items-center justify-between">
-                  <span>Your Vault Documents ({documents.length} / 10)</span>
-                  <span className="text-[10px] text-emerald-400">Active Tenant</span>
-                </div>
-
+              {/* Document list */}
+              <div>
+                <p className="text-xs font-medium text-[var(--color-text-muted)] mb-2">
+                  Your documents ({documents.length} / 10)
+                </p>
                 {documents.length === 0 ? (
-                  <div className="text-xs text-slate-500 py-6 text-center border border-dashed border-emerald-500/15 rounded-xl">
-                    No private documents uploaded for this tenant yet.
+                  <div className="text-xs text-[var(--color-text-muted)] py-6 text-center border border-dashed border-[var(--color-border)] rounded-xl">
+                    No documents uploaded yet
                   </div>
                 ) : (
-                  documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-3.5 bg-[#0B1A14] border border-emerald-500/15 rounded-xl hover:border-emerald-500/30 transition">
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="p-2 rounded-lg bg-emerald-500/10 text-[#A9EE70]">
-                          <FileText className="w-4 h-4" />
+                  <div className="space-y-2">
+                    {documents.map((doc) => (
+                      <div key={doc.id} className="flex items-center gap-3 p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl hover:border-[var(--color-border-hover)] transition">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--color-accent-subtle)] flex items-center justify-center flex-shrink-0">
+                          <FileText className="w-4 h-4 text-[var(--color-accent-light)]" />
                         </div>
-                        <div className="truncate">
-                          <div className="text-xs font-semibold text-white truncate">{doc.title}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">
-                            {doc.page_count} pages • {doc.chunk_count} chunks • Ready
-                          </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-[var(--color-text-primary)] truncate">{doc.title}</p>
+                          <p className="text-[10px] text-[var(--color-text-muted)]">
+                            {doc.page_count} pages · {doc.chunk_count} sections
+                          </p>
                         </div>
+                        <button
+                          onClick={() => handleDelete(doc.id)}
+                          className="p-1.5 text-[var(--color-text-muted)] hover:text-rose-400 rounded-lg hover:bg-rose-950/40 transition flex-shrink-0"
+                          title="Remove document"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleDelete(doc.id)}
-                        className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition"
-                        title="Delete document synchronously from Qdrant"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </div>
             </>

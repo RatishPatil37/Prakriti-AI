@@ -57,11 +57,11 @@ export const EnvironmentalContextModal: React.FC<Props> = ({
               <Sliders className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">
-                Structured Environmental Context
+              <h2 className="text-lg font-bold text-[var(--color-text-primary)] tracking-tight font-sans">
+                Site Context
               </h2>
-              <p className="text-xs text-slate-400 font-mono">
-                Multi-metric site parameters injected into LLM reasoning prompt
+              <p className="text-xs text-[var(--color-text-secondary)]">
+                Add your location and conditions for more precise answers
               </p>
             </div>
           </div>
