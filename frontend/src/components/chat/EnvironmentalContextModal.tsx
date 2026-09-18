@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sprout, Mountain } from 'lucide-react';
+import { X, Sprout, Mountain, Sliders, Check } from 'lucide-react';
 import { EnvironmentalContextData } from '../../lib/sse';
 
 interface Props {
@@ -19,7 +19,7 @@ export const EnvironmentalContextModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
-  const handlePreset = (preset: 'semi_arid_wheat' | 'degraded_pasture' | 'wetland') => {
+  const handlePreset = (preset: 'semi_arid_wheat' | 'degraded_pasture') => {
     if (preset === 'semi_arid_wheat') {
       setFormData({
         region_or_coords: 'Western India / Semi-Arid Plateau',
@@ -48,14 +48,27 @@ export const EnvironmentalContextModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-evergreen-900/40 backdrop-blur-sm p-4">
-      <div className="bg-botanical-50 border border-earth-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between p-6 border-b border-earth-border">
-          <div>
-            <h2 className="text-xl font-serif font-semibold text-evergreen">Structured Environmental Context</h2>
-            <p className="text-xs text-evergreen/60 mt-0.5">Ground reasoning in site-specific soil, climate, and land-use metrics</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn">
+      <div className="bg-[#07130E] border border-emerald-500/25 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-[0_20px_80px_rgba(0,0,0,0.8)] relative">
+        {/* Top Header */}
+        <div className="flex items-center justify-between p-6 border-b border-emerald-500/15">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-emerald-500/15 text-[#A9EE70]">
+              <Sliders className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white tracking-tight">
+                Structured Environmental Context
+              </h2>
+              <p className="text-xs text-slate-400 font-mono">
+                Multi-metric site parameters injected into LLM reasoning prompt
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-earth-100 rounded-lg text-evergreen/60 transition">
+          <button 
+            onClick={onClose} 
+            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -63,116 +76,118 @@ export const EnvironmentalContextModal: React.FC<Props> = ({
         <div className="p-6 space-y-6">
           {/* Presets */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-evergreen/60 mb-2">
-              Quick Benchmarks & Presets
+            <label className="block text-[11px] font-mono font-bold uppercase tracking-[0.15em] text-emerald-400 mb-2.5">
+              Rapid Baseline Presets
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               <button
                 type="button"
                 onClick={() => handlePreset('semi_arid_wheat')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-forest-600/10 text-forest-600 hover:bg-forest-600/20 border border-forest-600/20 transition"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-medium bg-emerald-950/60 text-[#A9EE70] hover:bg-emerald-900/60 border border-emerald-500/30 hover:border-[#A9EE70]/60 transition shadow-sm"
               >
-                <Sprout className="w-3.5 h-3.5" />
-                Semi-Arid Monoculture Wheat (Assignment Baseline)
+                <Sprout className="w-4 h-4 text-[#A9EE70]" />
+                Semi-Arid Wheat (0.3% SOC, 350mm)
               </button>
               <button
                 type="button"
                 onClick={() => handlePreset('degraded_pasture')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-earth-200/50 text-evergreen hover:bg-earth-200 border border-earth-border transition"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-medium bg-slate-900/60 text-slate-300 hover:text-white hover:bg-slate-800/60 border border-slate-700 hover:border-slate-500 transition shadow-sm"
               >
-                <Mountain className="w-3.5 h-3.5" />
+                <Mountain className="w-4 h-4 text-emerald-400" />
                 Degraded Pasture Silvopasture
               </button>
             </div>
           </div>
 
+          {/* Form Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-evergreen mb-1">Region or Coordinates</label>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Region or Coordinates</label>
               <input
                 type="text"
-                placeholder="e.g. 23.0225° N, 72.5714° E or Western India"
+                placeholder="e.g. Western India / Semi-Arid Plateau"
                 value={formData.region_or_coords || ''}
                 onChange={(e) => setFormData({ ...formData, region_or_coords: e.target.value })}
-                className="w-full px-3 py-2 text-sm bg-white border border-earth-border rounded-lg focus:outline-none focus:ring-1 focus:ring-forest-600"
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-sans"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-evergreen mb-1">Climate Classification</label>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Climate Classification</label>
               <input
                 type="text"
-                placeholder="e.g. Semi-arid, Mediterranean, Humid tropical"
+                placeholder="e.g. Semi-Arid, Mediterranean, Dry Tropics"
                 value={formData.climate_zone || ''}
                 onChange={(e) => setFormData({ ...formData, climate_zone: e.target.value })}
-                className="w-full px-3 py-2 text-sm bg-white border border-earth-border rounded-lg focus:outline-none focus:ring-1 focus:ring-forest-600"
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-sans"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-evergreen mb-1">Soil Organic Carbon (SOC %)</label>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Soil Organic Carbon (SOC %)</label>
               <input
                 type="number"
                 step="0.05"
-                placeholder="e.g. 0.3"
+                placeholder="0.3"
                 value={formData.soil_organic_carbon_pct ?? ''}
                 onChange={(e) => setFormData({ ...formData, soil_organic_carbon_pct: e.target.value ? parseFloat(e.target.value) : undefined })}
-                className="w-full px-3 py-2 text-sm bg-white border border-earth-border rounded-lg focus:outline-none focus:ring-1 focus:ring-forest-600"
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-mono font-bold text-[#A9EE70]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-evergreen mb-1">Soil pH</label>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Soil pH</label>
               <input
                 type="number"
                 step="0.1"
-                placeholder="e.g. 7.2"
+                placeholder="7.8"
                 value={formData.soil_ph ?? ''}
                 onChange={(e) => setFormData({ ...formData, soil_ph: e.target.value ? parseFloat(e.target.value) : undefined })}
-                className="w-full px-3 py-2 text-sm bg-white border border-earth-border rounded-lg focus:outline-none focus:ring-1 focus:ring-forest-600"
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-evergreen mb-1">Mean Annual Rainfall (mm)</label>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Mean Annual Rainfall (mm)</label>
               <input
                 type="number"
-                placeholder="e.g. 350"
+                placeholder="350"
                 value={formData.annual_rainfall_mm ?? ''}
                 onChange={(e) => setFormData({ ...formData, annual_rainfall_mm: e.target.value ? parseFloat(e.target.value) : undefined })}
-                className="w-full px-3 py-2 text-sm bg-white border border-earth-border rounded-lg focus:outline-none focus:ring-1 focus:ring-forest-600"
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-mono font-bold text-[#A9EE70]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-evergreen mb-1">Water Availability Regime</label>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Water Availability Regime</label>
               <input
                 type="text"
-                placeholder="e.g. Rainfed, Drip irrigated, Canal"
+                placeholder="e.g. Rainfed with seasonal drought"
                 value={formData.water_availability || ''}
                 onChange={(e) => setFormData({ ...formData, water_availability: e.target.value })}
-                className="w-full px-3 py-2 text-sm bg-white border border-earth-border rounded-lg focus:outline-none focus:ring-1 focus:ring-forest-600"
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-sans"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-evergreen mb-1">Current Land Use & Tillage</label>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Current Land Use & Tillage</label>
               <input
                 type="text"
-                placeholder="e.g. Monoculture wheat with continuous conventional moldboard tillage"
+                placeholder="e.g. Monoculture wheat with intensive conventional tillage"
                 value={formData.current_land_use || ''}
                 onChange={(e) => setFormData({ ...formData, current_land_use: e.target.value })}
-                className="w-full px-3 py-2 text-sm bg-white border border-earth-border rounded-lg focus:outline-none focus:ring-1 focus:ring-forest-600"
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-sans"
               />
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-earth-border bg-botanical-100 rounded-b-2xl">
+        {/* Modal Footer */}
+        <div className="flex items-center justify-end gap-3 p-5 border-t border-emerald-500/15 bg-[#040D09]">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-evergreen/70 hover:text-evergreen transition"
+            className="px-4 py-2 text-xs font-mono text-slate-400 hover:text-white transition"
           >
             Cancel
           </button>
@@ -182,9 +197,10 @@ export const EnvironmentalContextModal: React.FC<Props> = ({
               onSave(formData);
               onClose();
             }}
-            className="px-5 py-2 text-sm font-medium bg-forest-600 hover:bg-forest-500 text-white rounded-lg shadow-sm transition"
+            className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold bg-gradient-to-r from-emerald-600 to-[#10B981] hover:from-emerald-500 hover:to-[#A9EE70] text-white rounded-xl shadow-[0_0_20px_rgba(0,146,69,0.4)] transition font-mono"
           >
-            Save Environmental Context
+            <Check className="w-4 h-4" />
+            Apply Site Parameters
           </button>
         </div>
       </div>

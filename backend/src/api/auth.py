@@ -97,36 +97,33 @@ def verify_token(token: str) -> Dict[str, Any]:
 
 async def get_current_user_optional(authorization: Optional[str] = Header(None)) -> AuthUser:
     """
-    Extracts authenticated user from Authorization header if present.
-    If header is absent or empty, returns an anonymous AuthUser (scope='public' only).
+    Extracts authenticated user from Authorization header if present and valid.
+    If header is absent, empty, or token verification fails, gracefully returns
+    an anonymous AuthUser (scope='public' only) so scientific queries are never blocked.
     """
     if not authorization or not authorization.strip():
         return AuthUser(user_id=None, role="anon", is_authenticated=False)
 
     parts = authorization.split()
     if len(parts) != 2 or parts[0].lower() != "bearer":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header must follow format: Bearer <token>",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        logger.warning("Malformed Authorization header, falling back to anonymous")
+        return AuthUser(user_id=None, role="anon", is_authenticated=False)
 
     token = parts[1]
-    payload = verify_token(token)
-    user_id = payload.get("sub")
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token missing 'sub' subject identifier",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    try:
+        payload = verify_token(token)
+        user_id = payload.get("sub")
+        if user_id:
+            return AuthUser(
+                user_id=str(user_id),
+                email=payload.get("email"),
+                role=payload.get("role", "authenticated"),
+                is_authenticated=True
+            )
+    except Exception as e:
+        logger.warning(f"Optional auth token unverified in {settings.ENVIRONMENT} mode ({e}); continuing as public anonymous scientist")
 
-    return AuthUser(
-        user_id=str(user_id),
-        email=payload.get("email"),
-        role=payload.get("role", "authenticated"),
-        is_authenticated=True
-    )
+    return AuthUser(user_id=None, role="anon", is_authenticated=False)
 
 async def get_current_user_required(authorization: Optional[str] = Header(None)) -> AuthUser:
     """

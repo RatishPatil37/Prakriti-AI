@@ -9,7 +9,7 @@ interface Message {
   isStreaming?: boolean;
 }
 
-// Generate base64 mock JWT for easy local test switching of User A vs User B
+// Generate base64 mock JWT for optional local multi-tenant test switching (User A vs User B)
 function createMockJwt(userId: string, email: string) {
   const header = btoa(JSON.stringify({ alg: "none", typ: "JWT" }));
   const payload = btoa(JSON.stringify({
@@ -31,14 +31,9 @@ export const App: React.FC = () => {
   const [citationsVerified, setCitationsVerified] = useState<boolean | null>(null);
   const [clarificationData, setClarificationData] = useState<any>(null);
 
-  // Current User Session
-  const [currentUser, setCurrentUser] = useState<{ user_id: string; email: string } | null>({
-    user_id: '11111111-1111-1111-1111-111111111111',
-    email: 'user_a@darukaa.test'
-  });
-  const [authToken, setAuthToken] = useState<string | null>(
-    createMockJwt('11111111-1111-1111-1111-111111111111', 'user_a@darukaa.test')
-  );
+  // Current User Session: Default to Anonymous (Public Scope) for instant zero-barrier querying
+  const [currentUser, setCurrentUser] = useState<{ user_id: string; email: string } | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
 
   // Environmental Context State (Defaulting to Hackathon Wheat Field scenario)
   const [environmentalContext, setEnvironmentalContext] = useState<EnvironmentalContextData>({
@@ -82,7 +77,7 @@ export const App: React.FC = () => {
     ];
     setMessages(newMessages);
 
-    // Build recent conversation turns
+    // Build recent conversation turns for contextual memory
     const convTurns: ConversationTurnData[] = messages.slice(-6).map(m => ({
       role: m.role,
       content: m.content
@@ -115,7 +110,7 @@ export const App: React.FC = () => {
         },
         onClarification: (clarification) => {
           setClarificationData(clarification);
-          // Remove empty assistant message
+          // Remove empty assistant message on zero-llm fast clarification
           setMessages(prev => prev.filter(m => m.id !== assistantMsgId));
         },
         onDone: (doneMetrics, quality, verified) => {
@@ -139,7 +134,7 @@ export const App: React.FC = () => {
           setMessages(prev =>
             prev.map(msg =>
               msg.id === assistantMsgId
-                ? { ...msg, content: msg.content || 'An error occurred during query generation.', isStreaming: false }
+                ? { ...msg, content: msg.content || 'An error occurred during query generation. Please try again.', isStreaming: false }
                 : msg
             )
           );
