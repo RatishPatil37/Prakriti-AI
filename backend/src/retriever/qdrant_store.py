@@ -21,11 +21,12 @@ class QdrantKnowledgeStore:
     def __init__(self, client: Optional[QdrantClient] = None):
         if client:
             self.client = client
-        elif settings.QDRANT_API_KEY and "cloud.qdrant.io" in settings.QDRANT_URL:
+        elif settings.QDRANT_API_KEY and settings.QDRANT_URL:
+            logger.info(f"Connecting to Qdrant cluster at {settings.QDRANT_URL}")
             self.client = QdrantClient(
                 url=settings.QDRANT_URL,
                 api_key=settings.QDRANT_API_KEY,
-                timeout=10.0
+                timeout=15.0
             )
         else:
             # Local or in-memory fallback for offline test suites

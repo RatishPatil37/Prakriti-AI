@@ -36,19 +36,25 @@ def verify_token(token: str) -> Dict[str, Any]:
     Enforces signature, audience ('authenticated'), and expiration.
     """
     jwks_client = get_jwks_client()
-    unverified_header = jwt.get_unverified_header(token)
+    try:
+        unverified_header = jwt.get_unverified_header(token)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid JWT header or format: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     alg = unverified_header.get("alg", "RS256")
 
-    # 1. Asymmetric verification via JWKS (Recommended)
-    if jwks_client and alg.startswith("RS") or alg.startswith("ES"):
+    # 1. Asymmetric verification via JWKS (Recommended for Supabase)
+    if jwks_client and (alg.startswith("RS") or alg.startswith("ES")):
         try:
             signing_key = jwks_client.get_signing_key_from_jwt(token)
             payload = jwt.decode(
                 token,
                 signing_key.key,
                 algorithms=[alg],
-                audience="authenticated",
-                options={"verify_exp": True, "verify_aud": False} # Supabase aud can vary
+                options={"verify_exp": True, "verify_signature": True}
             )
             return payload
         except Exception as e:
@@ -61,7 +67,7 @@ def verify_token(token: str) -> Dict[str, Any]:
                 token,
                 settings.SUPABASE_JWT_SECRET,
                 algorithms=["HS256"],
-                options={"verify_exp": True, "verify_aud": False}
+                options={"verify_exp": True, "verify_signature": True}
             )
             return payload
         except Exception as e:
@@ -71,8 +77,8 @@ def verify_token(token: str) -> Dict[str, Any]:
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-    # 3. Development/Test mock token verification (for automated tests with dev tokens)
-    if settings.ENVIRONMENT in ("development", "test"):
+    # 3. Development/Test mock token verification (ONLY permitted when ENVIRONMENT != 'production')
+    if settings.ENVIRONMENT != "production":
         try:
             payload = jwt.decode(
                 token,

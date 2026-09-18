@@ -1,11 +1,43 @@
 import pytest
 import uuid
+from fastapi import HTTPException
+from backend.src.config import settings
 from backend.src.ingestion.parser import ParsedPage
 from backend.src.ingestion.chunker import DocumentChunker
 from backend.src.ingestion.indexer import DocumentIndexer
 from backend.src.retriever.hybrid_search import search_hybrid_evidence
 from backend.src.retriever.qdrant_store import store
+from backend.src.retriever.embeddings import (
+    compute_dense_embedding,
+    compute_dense_embeddings_batch,
+    compute_sparse_embedding,
+    compute_sparse_embeddings_batch
+)
+from backend.src.api.auth import verify_token
 from backend.src.api.schemas import QueryFilters
+
+def test_query_and_ingestion_embedding_compatibility():
+    """
+    Verifies that the exact same embedding approach is used for queries and document ingestion,
+    producing compatible 384-dimensional dense vectors and valid BM25 sparse vectors.
+    """
+    text = "Agroforestry increases soil organic carbon and microbial diversity."
+
+    # 1. Query vs Ingestion Dense Embeddings
+    query_dense = compute_dense_embedding(text)
+    doc_dense = compute_dense_embeddings_batch([text])[0]
+
+    assert len(query_dense) == 384, f"Expected 384 dimensions, got {len(query_dense)}"
+    assert len(doc_dense) == 384, f"Expected 384 dimensions, got {len(doc_dense)}"
+    assert query_dense == doc_dense, "Query embedding and ingestion embedding must be identical for identical text!"
+
+    # 2. Query vs Ingestion BM25 Sparse Embeddings
+    query_sparse = compute_sparse_embedding(text)
+    doc_sparse = compute_sparse_embeddings_batch([text])[0]
+
+    assert len(query_sparse.indices) > 0, "Sparse query vector must have non-empty indices"
+    assert len(doc_sparse.indices) > 0, "Sparse doc vector must have non-empty indices"
+    assert set(query_sparse.indices) == set(doc_sparse.indices), "Sparse query and doc indices must match for identical text"
 
 @pytest.mark.asyncio
 async def test_multi_tenant_isolation_matrix():
@@ -40,7 +72,7 @@ async def test_multi_tenant_isolation_matrix():
         organization="Private Agronomy Lab"
     )
 
-    # Ingest a public document
+    # 2. Ingest a public document
     doc_pub_id = str(uuid.uuid4())
     pages_pub = [
         ParsedPage(
@@ -83,6 +115,25 @@ async def test_multi_tenant_isolation_matrix():
     user_a_matches = [r for r in results_a if secret_phrase in r.text]
     assert len(user_a_matches) >= 1, "User A failed to retrieve their own private document!"
 
+    # TEST D & Public Retrieval: Anonymous users see ONLY public documents
+    results_anon, _ = await search_hybrid_evidence(
+        query_text="Agroforestry semi-arid biodiversity",
+        verified_user_id=None
+    )
+    # Must retrieve public document
+    public_matches = [r for r in results_anon if r.scope == "public"]
+    assert len(public_matches) >= 1, "Public documents must be retrievable by anonymous queries!"
+
+    # Anonymous user searching for User A's private secret phrase must NEVER retrieve User A's private document
+    results_anon_secret, _ = await search_hybrid_evidence(
+        query_text=secret_phrase,
+        verified_user_id=None
+    )
+    anon_private_leaks = [r for r in results_anon_secret if r.owner_user_id == user_a_id or secret_phrase in r.text]
+    assert len(anon_private_leaks) == 0, f"Anonymous user retrieved private document! Leaks: {anon_private_leaks}"
+    for r in results_anon_secret:
+        assert r.scope == "public", f"Non-public document returned to anonymous user: {r.scope}"
+
     # TEST E: Filter relaxation preserves tenant boundary
     # Search with a non-existent region filter to trigger relaxation
     results_relaxed, _ = await search_hybrid_evidence(
@@ -94,13 +145,10 @@ async def test_multi_tenant_isolation_matrix():
     assert len(relaxed_leaks) == 0, "Filter relaxation bypassed tenant boundary!"
 
     # TEST F: IDOR Protection on source lookup
-    # Find point ID of User A's chunk
     chunk_point_id = str(uuid.uuid5(uuid.UUID(doc_a_id), "child:0"))
-    # User B attempts to access User A's point directly
     idor_point = store.get_source_point(point_id=chunk_point_id, verified_user_id=user_b_id)
     assert idor_point is None, "IDOR vulnerability: User B was able to read User A's private source directly!"
 
-    # User A accesses their own point directly -> Should succeed
     owner_point = store.get_source_point(point_id=chunk_point_id, verified_user_id=user_a_id)
     assert owner_point is not None, "Owner was unable to access their own source point!"
 
@@ -108,10 +156,38 @@ async def test_multi_tenant_isolation_matrix():
     delete_success = store.delete_document(document_id=doc_a_id, owner_user_id=user_a_id, wait=True)
     assert delete_success is True, "Delete operation failed"
 
-    # User A searches again -> Document must be completely gone
     results_post_delete, _ = await search_hybrid_evidence(
         query_text=secret_phrase,
         verified_user_id=user_a_id
     )
     post_delete_matches = [r for r in results_post_delete if secret_phrase in r.text]
     assert len(post_delete_matches) == 0, "Document was not synchronously purged from Qdrant after deletion!"
+
+def test_production_mode_rejects_unsigned_jwt():
+    """
+    Verifies that:
+    1. In development, unsigned mock tokens are accepted for offline test suites.
+    2. In production (ENVIRONMENT=production), unsigned/mock tokens are strictly rejected with 401.
+    """
+    import jwt
+    original_env = settings.ENVIRONMENT
+    try:
+        unsigned_token = jwt.encode(
+            {"sub": str(uuid.uuid4()), "role": "authenticated"},
+            key="",
+            algorithm="none"
+        )
+
+        # In development, unsigned token is accepted
+        settings.ENVIRONMENT = "development"
+        dev_payload = verify_token(unsigned_token)
+        assert "sub" in dev_payload
+
+        # In production, unsigned token MUST be rejected
+        settings.ENVIRONMENT = "production"
+        with pytest.raises(HTTPException) as exc_info:
+            verify_token(unsigned_token)
+
+        assert exc_info.value.status_code == 401
+    finally:
+        settings.ENVIRONMENT = original_env

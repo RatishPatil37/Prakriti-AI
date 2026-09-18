@@ -14,46 +14,9 @@ from qdrant_client.models import (
 from backend.src.config import settings
 from backend.src.api.schemas import EvidenceItem, QueryFilters
 from backend.src.retriever.qdrant_store import store
+from backend.src.retriever.embeddings import compute_dense_embedding, compute_sparse_embedding
 
 logger = logging.getLogger("hybrid_search")
-
-def generate_local_embedding(text: str, size: int = 384) -> List[float]:
-    """
-    Deterministic offline/local fallback dense embedding generation
-    for testing and environments without external inference.
-    """
-    vector = [0.0] * size
-    tokens = text.lower().split()
-    if not tokens:
-        return vector
-
-    for i, token in enumerate(tokens):
-        # Hash token to an index in vector
-        h = int(hashlib.md5(token.encode('utf-8')).hexdigest(), 16)
-        idx = h % size
-        vector[idx] += 1.0 / (1.0 + 0.1 * i)
-
-    # Normalize vector to unit length
-    magnitude = sum(x * x for x in vector) ** 0.5
-    if magnitude > 0:
-        vector = [x / magnitude for x in vector]
-    return vector
-
-def generate_local_bm25_sparse(text: str) -> SparseVector:
-    """
-    Generates sparse index representation for BM25 vector querying.
-    Maps word hashes to term frequency weights.
-    """
-    tokens = text.lower().split()
-    counts: Dict[int, float] = {}
-    for token in tokens:
-        idx = int(hashlib.sha256(token.encode('utf-8')).hexdigest()[:8], 16) % 1000000
-        counts[idx] = counts.get(idx, 0.0) + 1.0
-
-    return SparseVector(
-        indices=list(counts.keys()),
-        values=list(counts.values())
-    )
 
 def build_tenant_filter(verified_user_id: Optional[str] = None, filters: Optional[QueryFilters] = None) -> Filter:
     """
@@ -102,8 +65,8 @@ async def search_hybrid_evidence(
     """
     t0 = time.perf_counter()
 
-    dense_vector = generate_local_embedding(query_text, settings.DENSE_VECTOR_SIZE)
-    sparse_vector = generate_local_bm25_sparse(query_text)
+    dense_vector = compute_dense_embedding(query_text)
+    sparse_vector = compute_sparse_embedding(query_text)
 
     # Initial query with preferred topical filters
     tenant_filter = build_tenant_filter(verified_user_id=verified_user_id, filters=filters)

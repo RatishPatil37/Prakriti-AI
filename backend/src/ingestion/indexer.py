@@ -5,7 +5,7 @@ from qdrant_client.models import PointStruct
 from backend.src.config import settings
 from backend.src.ingestion.chunker import Chunk
 from backend.src.retriever.qdrant_store import store
-from backend.src.retriever.hybrid_search import generate_local_embedding, generate_local_bm25_sparse
+from backend.src.retriever.embeddings import compute_dense_embeddings_batch, compute_sparse_embeddings_batch
 
 class DocumentIndexer:
     @staticmethod
@@ -25,6 +25,9 @@ class DocumentIndexer:
         Indexes chunks into the Qdrant knowledge collection with named dense and BM25 sparse vectors.
         Uses deterministic point IDs and marks points with ingestion_status='ready'.
         """
+        if not chunks:
+            return 0
+
         points = []
 
         try:
@@ -32,11 +35,12 @@ class DocumentIndexer:
         except ValueError:
             doc_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, document_id)
 
-        for chunk in chunks:
-            point_id = str(uuid.uuid5(doc_uuid, f"child:{chunk.chunk_index}"))
+        texts = [chunk.child_text for chunk in chunks]
+        dense_vecs = compute_dense_embeddings_batch(texts)
+        sparse_vecs = compute_sparse_embeddings_batch(texts)
 
-            dense_vec = generate_local_embedding(chunk.child_text, settings.DENSE_VECTOR_SIZE)
-            sparse_vec = generate_local_bm25_sparse(chunk.child_text)
+        for chunk, dense_vec, sparse_vec in zip(chunks, dense_vecs, sparse_vecs):
+            point_id = str(uuid.uuid5(doc_uuid, f"child:{chunk.chunk_index}"))
 
             payload = {
                 "chunk_id": point_id,
