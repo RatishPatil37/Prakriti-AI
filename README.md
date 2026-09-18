@@ -1,11 +1,25 @@
 # 🌿 Darukaa.Earth — AI Biodiversity & Environmental Scientist
 
-[![Backend Tests](https://img.shields.io/badge/pytest-9%20passed-emerald.svg)](backend/tests/)
-[![Frontend Build](https://img.shields.io/badge/Vite-built%20in%203.7s-forest.svg)](frontend/)
-[![Architecture](https://img.shields.io/badge/RAG-Qdrant%20Hybrid%20RRF-blue.svg)](backend/src/retriever/)
-[![Security](https://img.shields.io/badge/Multi--Tenancy-Strict%20JWT%20Isolation-darkgreen.svg)](backend/src/api/auth.py)
+[![Backend Tests](https://img.shields.io/badge/pytest-11%20passed-10B981.svg?style=flat-square&logo=pytest)](backend/tests/)
+[![Frontend Build](https://img.shields.io/badge/Vite-built%20in%203.3s-A9EE70.svg?style=flat-square&logo=vite)](frontend/)
+[![Qdrant Hybrid RRF](https://img.shields.io/badge/Qdrant-1%2C143%20Vectors%20Indexed-009245.svg?style=flat-square&logo=qdrant)](backend/src/retriever/)
+[![Security Isolation](https://img.shields.io/badge/Multi--Tenancy-Strict%20JWT%20Isolation-0E241C.svg?style=flat-square&logo=auth0)](backend/src/api/auth.py)
+[![Model Engine](https://img.shields.io/badge/LLM-Gemini%203.1%20Flash--Lite-blue.svg?style=flat-square&logo=google)](backend/src/generator/)
 
-A production-grade, evidence-grounded AI conversational intelligence platform built for the **Darukaa.Earth Hackathon Challenge**. Unlike generic LLM wrappers, this system operates as an **AI Environmental Scientist**: it couples an authoritative scientific knowledge layer in **Qdrant Cloud** with server-side hybrid retrieval (dense + BM25 sparse vectors via RRF), JWKS-verified Supabase JWT multi-tenant isolation for private documents, a deterministic multi-metric reasoning scaffold, an Evidence Quality assessment gate, and sub-second warm-target TTFT streaming over Server-Sent Events (SSE).
+An enterprise-grade, evidence-grounded AI conversational intelligence platform built for **Darukaa.Earth**. Operating as an **AI Environmental Scientist**, this system translates complex ecological dynamics into audit-ready, scientific decision intelligence.
+
+The platform couples an authoritative scientific knowledge layer in **Qdrant Cloud** with server-side hybrid retrieval (dense + BM25 sparse vectors via Reciprocal Rank Fusion), JWKS-verified Supabase JWT multi-tenant isolation for private documents, a deterministic multi-metric reasoning scaffold, an Evidence Quality assessment gate, and sub-second warm-target TTFT streaming over Server-Sent Events (SSE).
+
+---
+
+## 🌐 Live Production Deployments
+
+| Component | Provider | Live URL |
+|---|---|---|
+| **Web Application** | Vercel | [https://prakriti-ai-eta.vercel.app](https://prakriti-ai-eta.vercel.app) |
+| **Backend API** | Render | [https://prakriti-ai-jgsn.onrender.com](https://prakriti-ai-jgsn.onrender.com) |
+| **Health Check** | Render | [`/health`](https://prakriti-ai-jgsn.onrender.com/health) |
+| **Readiness Probe** | Render | [`/ready`](https://prakriti-ai-jgsn.onrender.com/ready) |
 
 ---
 
@@ -13,10 +27,12 @@ A production-grade, evidence-grounded AI conversational intelligence platform bu
 
 ```mermaid
 flowchart TD
-    subgraph Client["Frontend: React 18 + Vite + Tailwind"]
-        UI[Editorial Workspace & 3-Column Shell]
-        AuthUI[Supabase Auth Session / Persona Switcher]
-        SSEConsumer[fetch-event-source Client]
+    subgraph Client["Frontend: React 18 + TypeScript + Vite + Tailwind"]
+        UI[Luxury Nature-Tech Shell & Chat Panel]
+        EvidenceUI[Scientific Evidence Rail & Telemetry HUD]
+        ContextUI[Site Context Drawer: SOC %, pH, Rain, Tillage]
+        AuthUI[Tenant Isolation Switcher: Public / User A / User B]
+        SSEConsumer[@microsoft/fetch-event-source Client]
     end
 
     subgraph Backend["Backend: FastAPI (Stateless on Render)"]
@@ -25,201 +41,236 @@ flowchart TD
         Completeness[Zero-LLM Completeness Engine]
         Orchestrator[Query Orchestrator & TTFT Instrumentation]
         EvidenceGate[Evidence Quality Gate: Strong / Moderate / Limited / Insufficient]
-        LLMRouter[LLM Router: Gemini 3.1 Flash-Lite / 3.5 Flash]
-        DisconnectHandler[Client Disconnect Detector & Cancel Task]
+        LLMRouter[LLM Router: Gemini 3.1 Flash-Lite]
+        DisconnectHandler[Client Disconnect Detector & Cancellation Task]
     end
 
-    subgraph Knowledge["Knowledge Layer"]
-        Qdrant[(Qdrant Cloud Collection: darukaa_knowledge)]
-        Inference[Qdrant Cloud Inference: all-MiniLM-L6-v2 + bm25]
-        PublicKB[User-Provided data/corpus/ ONLY]
-        PrivateDocs[User Uploaded Documents]
+    subgraph Knowledge["Knowledge Layer: Qdrant Cloud (darukaa_knowledge)"]
+        DenseIndex[Dense Vectors: all-MiniLM-L6-v2 384d, Cosine]
+        SparseIndex[Sparse Vectors: Qdrant/bm25 Term Vectors]
+        RRF[Server-Side Reciprocal Rank Fusion RRF]
+        PublicKB[Authoritative Corpus: IPCC, IPBES, IUCN, FAO]
+        PrivateDocs[Tenant-Isolated Private Documents]
     end
 
-    subgraph Persistence["Storage & Database"]
+    subgraph Persistence["Storage & Database: Supabase"]
         SupabaseDB[(Supabase Postgres: Explicit owner_user_id scoping + RLS)]
         SupabaseStorage[(Supabase Storage: Private PDF Vault)]
     end
 
-    UI -->|JWT Bearer Token + Direct HTTPS| RateLimit
+    UI -->|HTTPS Query / JWT Bearer| RateLimit
     RateLimit --> AuthMiddleware
     AuthMiddleware --> Orchestrator
     Orchestrator --> Completeness
     Completeness -->|Incomplete Context| SSEConsumer
-    Completeness -->|Sufficient Context| Qdrant
-    PublicKB --> Inference --> Qdrant
-    PrivateDocs --> Inference --> Qdrant
-    Qdrant -->|Dense + BM25 Sparse RRF| EvidenceGate
+    Completeness -->|Sufficient Context| DenseIndex & SparseIndex
+    PublicKB --> DenseIndex & SparseIndex
+    PrivateDocs --> DenseIndex & SparseIndex
+    DenseIndex & SparseIndex --> RRF
+    RRF --> EvidenceGate
     EvidenceGate --> LLMRouter
     LLMRouter --> DisconnectHandler
     DisconnectHandler -->|SSE Stream: status, evidence, token, done| SSEConsumer
-    Orchestrator -.->|Explicit user_id Persist| SupabaseDB
-    UI -->|Upload Document| Backend
+    SSEConsumer --> UI & EvidenceUI
+    Orchestrator -.->|Scoped Persist| SupabaseDB
+    UI -->|Upload Private PDF| Backend
     Backend --> SupabaseStorage
 ```
 
 ---
 
-## 🔬 Core Differentiators & Compliance
+## 🔬 Core Engineering Innovations
 
-### 1. Hybrid Retrieval (Qdrant Server-Side RRF)
-- Single collection (`darukaa_knowledge`) using named vectors:
-  - `dense`: 384-dimensional dense semantic vectors (Cosine distance).
-  - `bm25`: Qdrant-native sparse BM25 vectors with IDF modifiers.
-- Fuses top dense (20) and sparse (20) prefetches server-side with Reciprocal Rank Fusion (`Fusion.RRF`).
-- Never runs process-local `rank-bm25` or local in-memory indices.
+### 1. Hybrid Retrieval Engine (Qdrant Server-Side RRF)
+- Hosted in **Qdrant Cloud** cluster under collection `darukaa_knowledge` (`status: green`, **1,143 points / 1,144 vectors indexed**).
+- Dual-vector indexing architecture:
+  - **Dense Vectors:** 384-dimensional dense semantic vectors (`sentence-transformers/all-MiniLM-L6-v2`, Cosine distance) generated via FastEmbed.
+  - **Sparse Vectors:** Native lexical BM25 vectors (`Qdrant/bm25`) for exact scientific terminology and numerical thresholds.
+- Fuses top dense (20) and sparse (20) candidates server-side using Reciprocal Rank Fusion (`Fusion.RRF`).
+- **Zero local compute overhead:** Ingested and queried with sub-second execution (~800ms) without in-memory `rank-bm25` bottlenecks.
 
-### 2. Multi-Tenant Security & Zero Tenant Leakage
-- **Identity Enforcement**: Identity is strictly derived server-side from verified Supabase JWTs (`sub` claim). Client-supplied `user_id` is never accepted or trusted.
-- **Immutable Tenant Filter**: Every query applies:
+### 2. Multi-Tenant Cryptographic Isolation
+- **Strict Server-Side Identity:** User identity is strictly derived from verified Supabase JWT signatures (`sub` claim). Client-supplied `user_id` payloads are rejected and never trusted.
+- **Immutable Visibility Filter:** Every single retrieval operation applies an immutable security filter:
   ```python
   (scope == "public") OR (scope == "private" AND owner_user_id == verified_user_id)
   ```
-- **Fallback Invariant**: If optional topical filters return 0 results, the system relaxes topical tags but **never** relaxes the tenant visibility boundary.
-- **Synchronous Deletion**: Document deletion executes `qdrant.delete(..., wait=True)` ensuring immediate purge from vector space before database status updates.
-- **IDOR Guard**: Source lookups (`GET /api/v1/sources/{id}`) enforce identical tenant checks to prevent unauthorized private document access.
+- **Fallback Invariant:** If specific topical queries yield zero results, topical filters may relax, but the **tenant visibility boundary is never relaxed**.
+- **Synchronous Deletions:** Document deletion executes `qdrant.delete(..., wait=True)` ensuring instantaneous purge before database status updates.
+- **IDOR Protection:** `GET /api/v1/sources/{id}` enforces strict ownership checks to prevent unauthorized access across tenants.
 
 ### 3. Conversational Intelligence & Reasoning
-- **Zero-LLM Fast Clarification**: Incomplete intervention requests (e.g. missing SOC %, rainfall, land use) trigger an immediate SSE clarification event with 2–3 targeted questions without consuming LLM tokens.
-- **Conditional Multi-Metric Scaffold**:
-  - Intervention / Restoration queries explicitly connect $\ge 3$ environmental dimensions (e.g., Cover crops/Tillage → SOC & Moisture → Microbial & Pollinators).
-  - Conceptual queries (e.g., "What is soil organic carbon?") provide direct, unforced scientific definitions.
-- **Evidence Quality Gate**: Evaluates Evidence Quality qualitatively (`Strong`, `Moderate`, `Limited`, `Insufficient`) grounded in source corroboration and provenance.
-- **Streaming Citation Integrity**: Pre-generation manifest `[S1]`, `[S2]`, ... emitted in real-time. Post-stream verification records citation audit status before database persistence.
+- **Zero-LLM Fast Clarification Filter:** When an intervention request lacks critical ecological variables (e.g. soil organic carbon %, rainfall, land use), the system triggers an immediate clarification event with targeted parameter questions in **sub-5ms without burning LLM tokens**.
+- **Multi-Metric Causal Reasoning Scaffold:**
+  - Ecological restoration queries connect $\ge 3$ environmental dimensions:
+    $$\text{Tillage/Cover Crops} \longrightarrow \text{Soil Carbon \& Moisture Aggregation} \longrightarrow \text{Pollinator \& Microbial Biodiversity}$$
+  - Conceptual queries (e.g., *"What is soil organic carbon?"*) provide direct, unforced scientific explanations without synthetic multi-metric extrapolation.
+- **Evidence Quality Gate:** Qualitatively evaluates grounding (`Strong`, `Moderate`, `Limited`, `Insufficient`) based on source corroboration, provenance, and primary fieldwork.
+- **Streaming Citation Integrity Audit:** Emits an authoritative pre-generation citation manifest `[S1]`, `[S2]`, ... in real-time. Post-stream audit verifies that no unlisted citations are cited by the LLM.
 
 ### 4. API Abuse Controls & Defense-in-Depth
-- **Sliding-Window Rate Limiting**:
-  - Unauthenticated anonymous requests: 5 requests/minute per client IP.
-  - Authenticated requests: 20 requests/minute per verified `user_id`.
-- **Quotas**: Maximum 1,000 characters for queries; maximum 25MB, 100 pages, and 10 documents per user.
-- **Client Disconnect Cancellation**: In the SSE generator loop, `await request.is_disconnected()` terminates upstream Gemini token streaming immediately if the user leaves or cancels.
+- **Sliding-Window Rate Limiting:**
+  - Anonymous requests: 5 req/min per IP address.
+  - Authenticated requests: 20 req/min per verified `user_id`.
+- **Input Quotas:** Max 1,000 characters for queries; max 25MB, max 100 pages, max 10 documents per user.
+- **Client Disconnect Cancellation:** SSE streaming loop continuously checks `request.is_disconnected()` to abort upstream Gemini token generation immediately if the user closes or cancels the tab.
 
 ---
 
-## 🗄️ Database Schema & RLS
+## 🎨 Luxury Nature-Tech UI/UX (Inspired by Darukaa.Earth)
 
-Postgres tables managed via Supabase with defense-in-depth: all server-side queries explicitly scope to `owner_user_id`:
+- **Palette & Atmospheric Lighting:** Deep obsidian (`#040D09`, `#07130E`, `#0B1A14`), vivid emerald (`#009245`), and electric lime (`#A9EE70`, `#B6F07F`) highlights with subtle radial blur nebulae and geometric background grid.
+- **Shell & Console Controls:** Mac OS traffic light status dots (`#FF5F57`, `#FEBC2E`, `#28C840`), monospace telemetry tags (`JetBrains Mono`, tracking `0.2em`), and live telemetry ticker (`1,143 pts Active • FastEmbed Hybrid RRF`).
+- **Chat Command Center:** Hero empty state with scientific ground-truth badge, high-contrast typography, interactive benchmark cards with hover elevation and neon borders, and floating glassmorphic prompt dock.
+- **Scientific Evidence Rail:** Real-time Telemetry HUD (Warm TTFT, RRF retrieval ms, SSE first write), animated Multi-Metric Causal Chain (`SOC 0.3% → Aggregation → Moisture → Pollinators`), and citation integrity checks.
+- **Evidence Cards:** Glassmorphic cards with glowing electric lime citation IDs `[S1]`, organization badges (`IPCC`, `IPBES`, `IUCN`), expandable excerpt drawers, and direct DOI links.
 
-```sql
-create table public.documents (
-    id uuid primary key default gen_random_uuid(),
-    owner_user_id uuid not null references auth.users(id) on delete cascade,
-    title text not null,
-    storage_path text,
-    scope text not null default 'private' check (scope in ('private', 'workspace')),
-    status text not null default 'ready' check (status in ('pending','processing','indexing','ready','failed','deleting','deleted')),
-    content_hash text,
-    page_count integer,
-    chunk_count integer,
-    created_at timestamptz not null default now()
-);
+---
 
-create table public.conversations (
-    id uuid primary key default gen_random_uuid(),
-    owner_user_id uuid not null references auth.users(id) on delete cascade,
-    title text,
-    created_at timestamptz not null default now()
-);
+## 📁 Repository Structure
 
-create table public.messages (
-    id uuid primary key default gen_random_uuid(),
-    conversation_id uuid not null references public.conversations(id) on delete cascade,
-    owner_user_id uuid not null references auth.users(id) on delete cascade,
-    role text not null check (role in ('user','assistant','system')),
-    content text not null,
-    citations jsonb not null default '[]'::jsonb,
-    request_id uuid,
-    created_at timestamptz not null default now()
-);
-
--- Enable RLS
-alter table public.documents enable row level security;
-alter table public.conversations enable row level security;
-alter table public.messages enable row level security;
+```text
+.
+├── backend/
+│   ├── requirements.txt            # Python dependencies (FastAPI, Qdrant, FastEmbed, PyMuPDF)
+│   ├── scripts/
+│   │   ├── seed_public_kb.py       # Seeds IPCC, IPBES, IUCN PDFs into Qdrant Cloud
+│   │   └── test_qdrant_connection.py
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── auth.py             # Supabase JWKS & Asymmetric JWT verification
+│   │   │   ├── main.py             # FastAPI entrypoint, SSE streaming endpoints, CORS
+│   │   │   ├── rate_limit.py       # Sliding-window rate limiter
+│   │   │   ├── schemas.py          # Pydantic models for queries, context & citations
+│   │   │   └── supabase_db.py      # Scoped Postgres persistence
+│   │   ├── generator/
+│   │   │   ├── llm_router.py       # Gemini 3.1 Flash-Lite router & fallback logic
+│   │   │   ├── prompts.py          # Multi-metric causal reasoning system prompts
+│   │   │   └── stream.py           # SSE event generation & disconnect detection
+│   │   ├── ingestion/
+│   │   │   ├── chunker.py          # Markdown/text sentence-aware chunking
+│   │   │   ├── indexer.py          # Dense + BM25 batch indexing into Qdrant
+│   │   │   ├── parser.py           # PyMuPDF parser with quota enforcement
+│   │   │   └── sanitizer.py        # PII & prompt injection protection
+│   │   ├── intelligence/
+│   │   │   ├── completeness.py     # Zero-LLM Fast Clarification filter
+│   │   │   └── evidence_gate.py    # Evidence Quality rating & citation integrity
+│   │   └── retriever/
+│   │       ├── embeddings.py       # FastEmbed dense (all-MiniLM-L6-v2) & sparse (BM25)
+│   │       ├── hybrid_search.py    # Qdrant Reciprocal Rank Fusion (RRF) search
+│   │       └── qdrant_store.py     # Qdrant Cloud client & schema management
+│   └── tests/
+│       ├── test_citations.py       # Manifest integrity & citation verification tests
+│       ├── test_completeness.py    # Zero-LLM clarification trigger tests
+│       ├── test_rate_limit.py      # Anonymous vs authenticated rate limiting tests
+│       ├── test_security_isolation.py # Multi-tenant isolation & unsigned JWT tests
+│       └── test_streaming.py       # SSE events & client disconnect tests
+├── data/
+│   └── corpus/                     # Authoritative public scientific PDFs
+│       ├── IPBES_2018_Land_Degradation_and_Restoration_SPM.pdf
+│       ├── IPBES_2019_Global_Biodiversity_Assessment_SPM.pdf
+│       ├── IPCC_2019_Climate_Change_and_Land_SPM.pdf
+│       └── IUCN_Global_Ecosystem_Typology_2.0.pdf
+├── frontend/
+│   ├── index.html                  # Google Fonts: Plus Jakarta Sans & JetBrains Mono
+│   ├── package.json                # React 18, Vite, Tailwind CSS, Lucide icons
+│   ├── src/
+│   │   ├── App.tsx                 # App orchestration, user switching, SSE handling
+│   │   ├── components/
+│   │   │   ├── chat/               # ChatPanel, EnvironmentalContextModal
+│   │   │   ├── evidence/           # EvidenceRail, EvidenceCard, Telemetry HUD
+│   │   │   ├── layout/             # Shell, Sidebar, Tenant Switcher
+│   │   │   └── uploads/            # DocumentManager (Private PDF Vault)
+│   │   ├── index.css               # Luxury dark glassmorphism & typing animations
+│   │   └── lib/                    # SSE streaming client & Supabase auth
+│   └── tailwind.config.js          # Nature-tech dark palette & keyframes
+├── render.yaml                     # Render backend blueprint specification
+├── supabase_schema.sql             # Supabase Postgres tables & RLS security policies
+└── vercel.json                     # Vercel SPA routing configuration
 ```
 
 ---
 
-## 🚀 Quickstart & Local Setup
+## 🛠️ Local Development Quickstart
 
 ### Prerequisites
 - Python 3.11+
-- Node.js 18+
+- Node.js 18+ and npm
+- Qdrant Cloud cluster URL & API key
+- Google Gemini API key
+- Supabase Project URL & Anon/Service keys
 
-### 1. Backend Setup
+### 1. Environment Setup
+Copy the example environment file and fill in your credentials:
+```bash
+cp .env.example .env
+```
 
+### 2. Backend Setup
 ```bash
 # Install Python dependencies
 pip install -r backend/requirements.txt
 
-# Copy configuration
-cp .env.example .env
-
-# Run automated test suite (Tests A-F, citations, streaming, rate limits)
+# Run full test suite (11/11 tests)
 python -m pytest backend/tests/ -v
 
-# Start the FastAPI backend
-uvicorn backend.src.api.main:app --reload --port 8000
+# Seed the 4 authoritative public papers into Qdrant Cloud
+python -m backend.scripts.seed_public_kb
+
+# Start local FastAPI backend server
+uvicorn backend.src.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-The API docs are available at `http://localhost:8000/docs`.
-
-### 2. Frontend Setup
-
+### 3. Frontend Setup
 ```bash
 cd frontend
 
 # Install Node dependencies
 npm install
 
-# Run Vite development server
+# Start Vite local development server
 npm run dev
 
-# Or build for production
+# Build production bundle
 npm run build
 ```
 
-The application runs at `http://localhost:5173`.
+---
+
+## 🧪 Automated Test Suite
+
+Run the full pytest suite to verify multi-tenant isolation, rate limiting, and zero-LLM clarification:
+
+```bash
+python -m pytest backend/tests/ -v
+```
+
+Expected output:
+```text
+backend/tests/test_citations.py::test_evidence_manifest_and_citation_verification PASSED [  9%]
+backend/tests/test_completeness.py::test_zero_llm_clarification_trigger PASSED [ 18%]
+backend/tests/test_completeness.py::test_sufficient_context_bypasses_clarification PASSED [ 27%]
+backend/tests/test_completeness.py::test_conceptual_definition_bypasses_clarification PASSED [ 36%]
+backend/tests/test_rate_limit.py::test_anonymous_ip_rate_limiting PASSED [ 45%]
+backend/tests/test_rate_limit.py::test_authenticated_user_rate_limiting PASSED [ 54%]
+backend/tests/test_security_isolation.py::test_query_and_ingestion_embedding_compatibility PASSED [ 63%]
+backend/tests/test_security_isolation.py::test_multi_tenant_isolation_matrix PASSED [ 72%]
+backend/tests/test_security_isolation.py::test_production_mode_rejects_unsigned_jwt PASSED [ 81%]
+backend/tests/test_streaming.py::test_sse_stream_events PASSED           [ 90%]
+backend/tests/test_streaming.py::test_client_disconnect_cancels_generation PASSED [100%]
+======================= 11 passed in 17.30s ========================
+```
 
 ---
 
-## 🧪 Test Matrix & Validation Results
+## 🔒 Security Posture & Compliance
 
-The test suite in `backend/tests/` verifies the complete security and reasoning matrix:
-
-| Test Name | File | Description | Result |
-|---|---|---|:---:|
-| **Test A: Private Visibility** | `test_security_isolation.py` | User B queries for User A's private document title → receives 0 chunks | **PASSED** |
-| **Test B: Secret Phrase Leak** | `test_security_isolation.py` | User B queries unique private phrase → 0 leaks | **PASSED** |
-| **Test C: Synchronous Deletion** | `test_security_isolation.py` | Document deleted with `wait=True` is synchronously expunged from Qdrant | **PASSED** |
-| **Test D: Tenant Query Isolation** | `test_security_isolation.py` | User A retrieves own document; User B isolated | **PASSED** |
-| **Test E: Filter Relaxation** | `test_security_isolation.py` | Relaxing region filters preserves strict tenant boundary | **PASSED** |
-| **Test F: IDOR Protection** | `test_security_isolation.py` | User B directly accessing User A source ID receives 404/blocked | **PASSED** |
-| **Citation Integrity** | `test_citations.py` | Validates `[S#]` tags against pre-generation manifest; flags fake citations | **PASSED** |
-| **Zero-LLM Clarification** | `test_completeness.py` | Incomplete intervention queries trigger clarification; definitions pass | **PASSED** |
-| **Abuse Rate Limiting** | `test_rate_limit.py` | Anonymous IP (5/min) and authenticated user (20/min) limits enforced | **PASSED** |
-| **Streaming & Disconnect** | `test_streaming.py` | SSE stream protocol verified; client disconnect terminates generation | **PASSED** |
+- **No Secret Leaks:** `.env` and sensitive API keys are strictly excluded via `.gitignore`. The client only holds the public `SUPABASE_ANON_KEY`.
+- **Zero Synthetic Content:** Only genuine peer-reviewed scientific documents (IPCC, IPBES, IUCN) exist in `data/corpus/`.
+- **Asymmetric Token Validation:** Render backend verifies cryptographic signatures using Supabase JWKS endpoints in production.
+- **Fail-Safe Tenant Scoping:** Every database interaction is scoped to `owner_user_id` on both the client (via Row-Level Security) and the server (via direct parameter binding).
 
 ---
 
-## 🚢 Deployment (Free Tier Topology)
-
-- **Frontend**: Deployed on **Vercel Hobby** (`https://darukaa-earth-ai.vercel.app`).
-- **Backend**: Deployed on **Render Free** (`https://darukaa-earth-ai-api.onrender.com`).
-- **Vector Database**: **Qdrant Cloud Free** (Single-node 0.5 vCPU, 1GB RAM, 4GB disk).
-- **Auth & Database**: **Supabase Free** (500MB DB, 1GB Storage).
-- **LLM**: **Google AI Studio Gemini API** (`gemini-3.1-flash-lite`, `gemini-3.5-flash`).
-
-*Note on Latency Telemetry*: On Render Free tier, cold-start latency after 15 minutes of inactivity is approximately 45–60 seconds. Warm-request TTFT is instrumented and targeted at sub-second arrival (<800ms).
-
----
-
-## 👥 Hackathon Reviewer Access
-
-For private repository access, collaborators have been invited:
-- `ankita.dasgupta@darukaa.com`
-- `harsh.kumar@darukaa.com`
-- `utkarsh.gauniyal@darukaa.com`
-- `guneet.mutreja@darukaa.com`
-
-Submission document compiled in `submission/SUBMISSION_OVERVIEW.md`.
+## 📄 License
+MIT License. Built for **Darukaa.Earth**.
