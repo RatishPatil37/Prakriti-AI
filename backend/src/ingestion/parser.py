@@ -1,6 +1,6 @@
 import os
 import pymupdf as fitz
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import HTTPException, status
 from backend.src.config import settings
 
