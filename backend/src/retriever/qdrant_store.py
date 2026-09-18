@@ -26,7 +26,7 @@ class QdrantKnowledgeStore:
             self.client = QdrantClient(
                 url=settings.QDRANT_URL,
                 api_key=settings.QDRANT_API_KEY,
-                timeout=15.0
+                timeout=60.0
             )
         else:
             # Local or in-memory fallback for offline test suites

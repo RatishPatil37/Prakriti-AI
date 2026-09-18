@@ -11,14 +11,21 @@ class ParsedPage:
 
 class DocumentParser:
     @staticmethod
-    def parse_pdf_bytes(file_bytes: bytes) -> List[ParsedPage]:
+    def parse_pdf_bytes(
+        file_bytes: bytes,
+        max_pages: Optional[int] = None,
+        max_size_mb: Optional[float] = None,
+        enforce_quota: bool = True
+    ) -> List[ParsedPage]:
         # Validate size
-        size_mb = len(file_bytes) / (1024 * 1024)
-        if size_mb > settings.MAX_UPLOAD_SIZE_MB:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"PDF exceeds size limit of {settings.MAX_UPLOAD_SIZE_MB}MB ({size_mb:.2f}MB provided)"
-            )
+        if enforce_quota:
+            limit_mb = max_size_mb if max_size_mb is not None else settings.MAX_UPLOAD_SIZE_MB
+            size_mb = len(file_bytes) / (1024 * 1024)
+            if size_mb > limit_mb:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail=f"PDF exceeds size limit of {limit_mb}MB ({size_mb:.2f}MB provided)"
+                )
 
         try:
             doc = fitz.open(stream=file_bytes, filetype="pdf")
@@ -28,13 +35,14 @@ class DocumentParser:
                 detail=f"Unable to parse PDF document: {str(e)}"
             )
 
-        # Validate page count quota
         page_count = len(doc)
-        if page_count > settings.MAX_UPLOAD_PAGES:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"PDF page count exceeds maximum of {settings.MAX_UPLOAD_PAGES} pages ({page_count} pages provided)"
-            )
+        if enforce_quota:
+            limit_pages = max_pages if max_pages is not None else settings.MAX_UPLOAD_PAGES
+            if page_count > limit_pages:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail=f"PDF page count exceeds maximum of {limit_pages} pages ({page_count} pages provided)"
+                )
 
         pages = []
         for page_num in range(page_count):

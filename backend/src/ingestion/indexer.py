@@ -73,6 +73,9 @@ class DocumentIndexer:
             )
 
         if points:
-            store.upsert_points(points=points, wait=True)
+            batch_size = 64
+            for i in range(0, len(points), batch_size):
+                batch = points[i:i + batch_size]
+                store.upsert_points(points=batch, wait=True)
 
         return len(points)

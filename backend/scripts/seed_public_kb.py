@@ -47,34 +47,38 @@ def seed_public_knowledge_base():
         file_path = os.path.join(corpus_dir, filename)
         logger.info(f"Processing user-provided document: {filename}")
 
-        with open(file_path, "rb") as f:
-            file_bytes = f.read()
+        try:
+            with open(file_path, "rb") as f:
+                file_bytes = f.read()
 
-        if filename.lower().endswith(".pdf"):
-            pages = DocumentParser.parse_pdf_bytes(file_bytes)
-        else:
-            pages = DocumentParser.parse_text_bytes(file_bytes)
+            if filename.lower().endswith(".pdf"):
+                # Corpus documents may be long research reports, allow full page parsing
+                pages = DocumentParser.parse_pdf_bytes(file_bytes, enforce_quota=False)
+            else:
+                pages = DocumentParser.parse_text_bytes(file_bytes)
 
-        if not pages:
-            logger.warning(f"No text extracted from {filename}")
-            continue
+            if not pages:
+                logger.warning(f"No text extracted from {filename}")
+                continue
 
-        chunks = DocumentChunker.chunk_pages(pages)
-        doc_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, filename))
-        title = os.path.splitext(filename)[0].replace("_", " ").title()
+            chunks = DocumentChunker.chunk_pages(pages)
+            doc_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, filename))
+            title = os.path.splitext(filename)[0].replace("_", " ").title()
 
-        # Ingest as public scientific knowledge
-        count = DocumentIndexer.index_document_chunks(
-            document_id=doc_id,
-            title=title,
-            chunks=chunks,
-            scope="public",
-            owner_user_id=None,
-            organization="Public Scientific Corpus",
-            source_type="primary_research"
-        )
-        total_chunks_indexed += count
-        logger.info(f"Successfully indexed {count} chunks for '{title}' (Document ID: {doc_id})")
+            # Ingest as public scientific knowledge
+            count = DocumentIndexer.index_document_chunks(
+                document_id=doc_id,
+                title=title,
+                chunks=chunks,
+                scope="public",
+                owner_user_id=None,
+                organization="Public Scientific Corpus",
+                source_type="primary_research"
+            )
+            total_chunks_indexed += count
+            logger.info(f"Successfully indexed {count} chunks for '{title}' (Document ID: {doc_id})")
+        except Exception as e:
+            logger.error(f"Failed to process {filename}: {e}", exc_info=True)
 
     logger.info(f"Seeding completed. Total public chunks indexed: {total_chunks_indexed}")
 
