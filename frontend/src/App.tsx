@@ -67,7 +67,7 @@ const AppInner: React.FC = () => {
     refreshConversations().then((list) => {
       // Restore last active conversation from sessionStorage
       const savedId = sessionStorage.getItem(ACTIVE_CONV_KEY);
-      if (savedId && list.some(c => c.id === savedId)) {
+      if (savedId && list.some((c: Conversation) => c.id === savedId)) {
         loadConversation(savedId);
       }
     });
@@ -83,7 +83,7 @@ const AppInner: React.FC = () => {
     setClarificationData(null);
 
     const msgs = await loadMessages(conversationId);
-    setMessages(msgs.map(m => ({
+    setMessages(msgs.map((m: DBMessage) => ({
       id: m.id,
       role: m.role,
       content: m.content,
@@ -145,22 +145,23 @@ const AppInner: React.FC = () => {
     }));
 
     // Ensure we have a conversation in Supabase
-    let convId = activeConversationId;
+    let convId: string | null = activeConversationId;
     if (!convId) {
       const newConv = await createConversation(text);
       if (newConv) {
         convId = newConv.id;
         setActiveConversationId(convId);
-        sessionStorage.setItem(ACTIVE_CONV_KEY, convId);
+        sessionStorage.setItem(ACTIVE_CONV_KEY, newConv.id);
         await refreshConversations();
       }
     }
 
     // Save user message to Supabase
     if (convId) {
-      await saveMessage(convId, 'user', text);
+      const currentConvId = convId;
+      await saveMessage(currentConvId, 'user', text);
       // Update conversation title after first message if it's still the default
-      const conv = conversations.find(c => c.id === convId);
+      const conv = conversations.find((c: Conversation) => c.id === currentConvId);
       if (!conv || conv.title === 'New conversation') {
         const title = text.length > 60 ? text.slice(0, 57) + '…' : text;
         await updateConversationTitle(convId, title);
