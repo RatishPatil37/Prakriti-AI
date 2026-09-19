@@ -44,6 +44,7 @@ class QueryRequest(BaseModel):
         description="Recent conversation turns (limited to last 6-10 turns)"
     )
     filters: Optional[QueryFilters] = Field(default=None, description="Optional search filters")
+    session_id: Optional[str] = Field(default=None, description="Optional conversation session ID for trace grouping")
 
     @field_validator("question")
     @classmethod

@@ -13,3 +13,4 @@ slowapi>=0.1.9
 python-multipart>=0.0.9
 pytest>=8.2.0
 pytest-asyncio>=0.23.0
+langfuse>=2.0.0

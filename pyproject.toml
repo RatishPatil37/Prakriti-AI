@@ -20,6 +20,7 @@ dependencies = [
     "slowapi>=0.1.9",
     "supabase>=2.5.0",
     "uvicorn[standard]>=0.30.0",
+    "langfuse>=2.0.0",
 ]
 
 [tool.pytest.ini_options]

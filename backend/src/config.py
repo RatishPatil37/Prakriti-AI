@@ -50,4 +50,9 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = Field(default="", description="Supabase Service Role Key (Backend only)")
     SUPABASE_JWT_SECRET: str = Field(default="", description="Optional legacy HS256 secret fallback")
 
+    # Langfuse Observability & Tracing
+    LANGFUSE_PUBLIC_KEY: str = Field(default="", description="Langfuse Project Public Key")
+    LANGFUSE_SECRET_KEY: str = Field(default="", description="Langfuse Project Secret Key")
+    LANGFUSE_BASE_URL: str = Field(default="https://cloud.langfuse.com", description="Langfuse Host / Base URL")
+
 settings = Settings()

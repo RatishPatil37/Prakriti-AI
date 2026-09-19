@@ -111,38 +111,23 @@ export const Shell: React.FC<Props> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* BookOpen button — toggle Sources panel; visible on all viewports */}
-            {evidenceList.length > 0 && (
-              <button
-                onClick={() => setSourcesOpen(v => !v)}
-                title={sourcesOpen ? 'Hide sources' : 'Show sources'}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                  sourcesOpen
-                    ? 'bg-[var(--color-surface-2)] text-[var(--color-accent-light)] border border-[var(--color-border)]'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border border-transparent'
-                }`}
-              >
-                <BookOpen className="w-4 h-4 text-[var(--color-accent-light)]" />
-                <span className="hidden sm:inline">Sources</span>
+            {/* BookOpen button — always visible on top right to toggle Sources panel */}
+            <button
+              onClick={() => setSourcesOpen(v => !v)}
+              title={sourcesOpen ? 'Hide sources' : 'Show sources'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+                sourcesOpen
+                  ? 'bg-[var(--color-surface-2)] text-[var(--color-accent-light)] border border-[var(--color-border)]'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border border-[var(--color-border)]'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 text-[var(--color-accent-light)]" />
+              <span>Sources</span>
+              {evidenceList.length > 0 && (
                 <span className="bg-[var(--color-accent)]/20 text-[var(--color-accent-light)] px-1.5 py-0.5 rounded-full text-[10px] font-semibold">
                   {evidenceList.length}
                 </span>
-              </button>
-            )}
-
-            {/* Context button */}
-            <button
-              onClick={() => setContextModalOpen(true)}
-              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] hover:border-[var(--color-border-hover)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition cursor-pointer"
-              title="Configure your site context for more accurate answers"
-            >
-              <Leaf className="w-3.5 h-3.5 text-[var(--color-accent-light)]" />
-              <span className="hidden sm:inline">
-                {environmentalContext.region_or_coords || environmentalContext.climate_zone
-                  ? environmentalContext.region_or_coords?.split('/')[0]?.trim() || 'Site context'
-                  : 'Set site context'}
-              </span>
-              <span className="sm:hidden">Context</span>
+              )}
             </button>
           </div>
         </div>
@@ -162,8 +147,8 @@ export const Shell: React.FC<Props> = ({
             conversationTitle={activeConversation?.title ?? null}
           />
 
-          {/* Evidence panel — only shown when there are sources AND user hasn't closed it */}
-          {evidenceList.length > 0 && sourcesOpen && (
+          {/* Evidence panel — shown when toggled open */}
+          {sourcesOpen && (
             <EvidencePanel
               evidenceList={evidenceList}
               qualityAssessment={qualityAssessment}
