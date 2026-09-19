@@ -19,45 +19,68 @@ def get_genai_client():
             _genai_client = None
     return _genai_client
 
+
+async def _stream_model(client, model_name: str, prompt: str) -> AsyncGenerator[str, None]:
+    """Helper: stream from a single model and yield text chunks."""
+    response_stream = await asyncio.to_thread(
+        client.models.generate_content_stream,
+        model=model_name,
+        contents=prompt,
+    )
+    for chunk in response_stream:
+        if chunk.text:
+            yield chunk.text
+            await asyncio.sleep(0.001)  # Yield control to event loop
+
+
 async def stream_gemini_tokens(prompt: str, model_name: Optional[str] = None) -> AsyncGenerator[str, None]:
     """
     Streams tokens asynchronously from Gemini using the official google-genai SDK.
-    Falls back to deterministic offline simulation when API keys are not yet configured.
+
+    3-Tier Fallback Chain:
+      1. gemini-2.5-flash-lite  (primary — fastest, lowest TTFT)
+      2. gemini-2.0-flash-lite  (secondary — balance of speed and capability)
+      3. gemini-2.5-flash       (tertiary — highest capability, final safety net)
+
+    Falls back to deterministic offline simulation ONLY when all live models fail
+    or API key is not configured.
     """
     client = get_genai_client()
-    target_model = model_name or settings.LLM_PRIMARY_MODEL
+    explicit_model = model_name  # Caller can override the whole chain with a specific model
 
     if client:
-        try:
-            # Call google-genai streaming
-            response_stream = client.models.generate_content_stream(
-                model=target_model,
-                contents=prompt,
-            )
-            for chunk in response_stream:
-                if chunk.text:
-                    yield chunk.text
-                    await asyncio.sleep(0.001) # Yield control to event loop
-            return
-        except Exception as e:
-            logger.error(f"Gemini streaming error ({target_model}): {e}")
-            # Try secondary model if primary failed
-            if target_model == settings.LLM_PRIMARY_MODEL and settings.LLM_SECONDARY_MODEL:
-                logger.info(f"Failing over to secondary model: {settings.LLM_SECONDARY_MODEL}")
-                try:
-                    fallback_stream = client.models.generate_content_stream(
-                        model=settings.LLM_SECONDARY_MODEL,
-                        contents=prompt,
-                    )
-                    for chunk in fallback_stream:
-                        if chunk.text:
-                            yield chunk.text
-                            await asyncio.sleep(0.001)
-                    return
-                except Exception as fb_err:
-                    logger.error(f"Fallback model failed: {fb_err}")
+        # Build the ordered model chain
+        if explicit_model:
+            model_chain = [explicit_model]
+        else:
+            model_chain = [
+                settings.LLM_PRIMARY_MODEL,    # gemini-2.5-flash-lite
+                settings.LLM_SECONDARY_MODEL,  # gemini-2.0-flash-lite
+                settings.LLM_TERTIARY_MODEL,   # gemini-2.5-flash
+            ]
 
-    # Offline / Test Simulation Mode
+        last_error = None
+        for tier_idx, tier_model in enumerate(model_chain):
+            try:
+                logger.info(f"LLM tier {tier_idx + 1}: using {tier_model}")
+                yielded_any = False
+                async for token in _stream_model(client, tier_model, prompt):
+                    yield token
+                    yielded_any = True
+                if yielded_any:
+                    return  # Successful stream — done
+                # Empty response — treat as a soft failure and try next tier
+                logger.warning(f"Model {tier_model} returned empty response; trying next tier")
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Model {tier_model} failed (tier {tier_idx + 1}): {e}")
+                if tier_idx < len(model_chain) - 1:
+                    logger.info(f"Falling over to tier {tier_idx + 2}: {model_chain[tier_idx + 1]}")
+
+        # All live models exhausted
+        logger.error(f"All {len(model_chain)} LLM tiers failed. Last error: {last_error}")
+
+    # ── Offline / Test Simulation Mode ──────────────────────────────────────────
     logger.info("Running in offline test simulation mode")
     simulated_tokens = [
         "### Ecological Analysis & Recommendation\n\n",

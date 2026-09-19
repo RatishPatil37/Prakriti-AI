@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://localhost:3000",
+        "https://prakriti-ai-eta.vercel.app",
         "https://darukaa-earth-ai.vercel.app"
     ]
 
@@ -35,10 +36,11 @@ class Settings(BaseSettings):
     QDRANT_SPARSE_MODEL: str = "Qdrant/bm25"
     DENSE_VECTOR_SIZE: int = 384
 
-    # LLM Providers
+    # LLM Providers — 3-Tier Fallback Chain
     GEMINI_API_KEY: str = Field(default="", description="Google AI Studio Gemini API Key")
-    LLM_PRIMARY_MODEL: str = "gemini-3.1-flash-lite"
-    LLM_SECONDARY_MODEL: str = "gemini-3.5-flash"
+    LLM_PRIMARY_MODEL: str = "gemini-3.5-flash-lite"      # Primary low-latency model
+    LLM_SECONDARY_MODEL: str = "gemini-3.1-flash-lite"         # Active secondary tier
+    LLM_TERTIARY_MODEL: str = "gemini-3.6-flash"          # Resilient fallback tier
     GROQ_API_KEY: str = Field(default="", description="Optional Groq fallback API key")
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
 

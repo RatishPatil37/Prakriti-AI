@@ -1,7 +1,7 @@
+import asyncio
 import time
 import logging
-import hashlib
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Tuple
 from qdrant_client.models import (
     Filter,
     FieldCondition,
@@ -9,7 +9,6 @@ from qdrant_client.models import (
     Prefetch,
     FusionQuery,
     Fusion,
-    SparseVector
 )
 from backend.src.config import settings
 from backend.src.api.schemas import EvidenceItem, QueryFilters
@@ -65,8 +64,11 @@ async def search_hybrid_evidence(
     """
     t0 = time.perf_counter()
 
-    dense_vector = compute_dense_embedding(query_text)
-    sparse_vector = compute_sparse_embedding(query_text)
+    # ── Parallelize dense + sparse embedding (cuts CPU embed time by ~50%) ──
+    dense_vector, sparse_vector = await asyncio.gather(
+        asyncio.to_thread(compute_dense_embedding, query_text),
+        asyncio.to_thread(compute_sparse_embedding, query_text),
+    )
 
     # Initial query with preferred topical filters
     tenant_filter = build_tenant_filter(verified_user_id=verified_user_id, filters=filters)

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Leaf, Plus, MessageSquare, Trash2, LogOut, Upload,
-  ChevronLeft, Menu, X, Sliders
+  X, Sliders, Pin, PinOff
 } from 'lucide-react';
-import { Conversation } from '../../lib/conversations';
+import { Conversation, togglePinConversation } from '../../lib/conversations';
 import { useAuth } from '../../lib/auth';
 
 interface Props {
@@ -12,11 +12,14 @@ interface Props {
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
   onDeleteConversation: (id: string) => void;
+  onPinToggle: (id: string, currentPinned: boolean) => void;
   onOpenDocuments: () => void;
   onOpenContextModal: () => void;
   mobileOpen: boolean;
   onMobileClose: () => void;
 }
+
+const MAX_CONVERSATIONS = 20;
 
 export const ConversationSidebar: React.FC<Props> = ({
   conversations,
@@ -24,6 +27,7 @@ export const ConversationSidebar: React.FC<Props> = ({
   onSelectConversation,
   onNewConversation,
   onDeleteConversation,
+  onPinToggle,
   onOpenDocuments,
   onOpenContextModal,
   mobileOpen,
@@ -31,6 +35,7 @@ export const ConversationSidebar: React.FC<Props> = ({
 }) => {
   const { user, signOut } = useAuth();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pinningId, setPinningId] = useState<string | null>(null);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -39,10 +44,21 @@ export const ConversationSidebar: React.FC<Props> = ({
     setDeletingId(null);
   };
 
+  const handlePin = async (e: React.MouseEvent, conv: Conversation) => {
+    e.stopPropagation();
+    setPinningId(conv.id);
+    await onPinToggle(conv.id, conv.is_pinned);
+    setPinningId(null);
+  };
+
   const displayEmail = user?.email ?? '';
   const initials = displayEmail.slice(0, 2).toUpperCase() || '?';
 
-  // Group conversations by date
+  const pinned = conversations.filter(c => c.is_pinned);
+  const unpinned = conversations.filter(c => !c.is_pinned);
+  const unpinnedCount = unpinned.length;
+
+  // Group unpinned conversations by date
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const yesterday = new Date(today);
@@ -50,7 +66,7 @@ export const ConversationSidebar: React.FC<Props> = ({
   const lastWeek = new Date(today);
   lastWeek.setDate(lastWeek.getDate() - 7);
 
-  const grouped = conversations.reduce<Record<string, Conversation[]>>((acc, conv) => {
+  const grouped = unpinned.reduce<Record<string, Conversation[]>>((acc, conv) => {
     const d = new Date(conv.updated_at);
     let bucket: string;
     if (d >= today) bucket = 'Today';
@@ -62,6 +78,48 @@ export const ConversationSidebar: React.FC<Props> = ({
   }, {});
 
   const bucketOrder = ['Today', 'Yesterday', 'This week', 'Older'];
+
+  const ConvRow = ({ conv }: { conv: Conversation }) => (
+    <button
+      key={conv.id}
+      onClick={() => { onSelectConversation(conv.id); onMobileClose(); }}
+      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-all group ${
+        conv.id === activeConversationId
+          ? 'bg-[var(--color-surface-2)] text-[var(--color-text-primary)]'
+          : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)]'
+      }`}
+    >
+      <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-[var(--color-text-muted)]" />
+      <span className="flex-1 truncate text-xs">{conv.title}</span>
+
+      {/* Pin / unpin button */}
+      <button
+        onClick={(e) => handlePin(e, conv)}
+        className={`flex-shrink-0 p-1 rounded transition-opacity ${
+          conv.is_pinned || pinningId === conv.id
+            ? 'opacity-100 text-[var(--color-accent-light)]'
+            : 'opacity-0 group-hover:opacity-100 text-[var(--color-text-muted)]'
+        } hover:text-[var(--color-accent-light)]`}
+        title={conv.is_pinned ? 'Unpin' : 'Pin conversation'}
+      >
+        {conv.is_pinned
+          ? <PinOff className="w-3 h-3" />
+          : <Pin className="w-3 h-3" />
+        }
+      </button>
+
+      {/* Delete button */}
+      <button
+        onClick={(e) => handleDelete(e, conv.id)}
+        className={`flex-shrink-0 p-1 rounded transition-opacity ${
+          deletingId === conv.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        } text-[var(--color-text-muted)] hover:text-rose-400`}
+        title="Delete conversation"
+      >
+        <Trash2 className="w-3 h-3" />
+      </button>
+    </button>
+  );
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
@@ -84,8 +142,8 @@ export const ConversationSidebar: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* New chat button */}
-      <div className="p-3">
+      {/* New chat button + chat counter */}
+      <div className="p-3 space-y-2">
         <button
           onClick={() => { onNewConversation(); onMobileClose(); }}
           className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-light)] text-white text-sm font-medium transition-colors"
@@ -93,6 +151,17 @@ export const ConversationSidebar: React.FC<Props> = ({
           <Plus className="w-4 h-4 flex-shrink-0" />
           New conversation
         </button>
+        {/* Chat limit counter */}
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[10px] text-[var(--color-text-muted)]">
+            {unpinnedCount} / {MAX_CONVERSATIONS} chats
+          </span>
+          {pinned.length > 0 && (
+            <span className="text-[10px] text-[var(--color-accent-light)]">
+              {pinned.length} pinned
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Conversation list */}
@@ -103,40 +172,36 @@ export const ConversationSidebar: React.FC<Props> = ({
             <br />Start by asking a question.
           </div>
         ) : (
-          bucketOrder.map(bucket => {
-            const items = grouped[bucket];
-            if (!items?.length) return null;
-            return (
-              <div key={bucket}>
-                <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-                  {bucket}
+          <>
+            {/* ── Pinned section ── */}
+            {pinned.length > 0 && (
+              <div>
+                <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-accent-light)] flex items-center gap-1.5">
+                  <Pin className="w-3 h-3" />
+                  Pinned
                 </div>
-                {items.map(conv => (
-                  <button
-                    key={conv.id}
-                    onClick={() => { onSelectConversation(conv.id); onMobileClose(); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-all group ${
-                      conv.id === activeConversationId
-                        ? 'bg-[var(--color-surface-2)] text-[var(--color-text-primary)]'
-                        : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)]'
-                    }`}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-[var(--color-text-muted)]" />
-                    <span className="flex-1 truncate text-xs">{conv.title}</span>
-                    <button
-                      onClick={(e) => handleDelete(e, conv.id)}
-                      className={`flex-shrink-0 p-1 rounded transition-opacity ${
-                        deletingId === conv.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                      } text-[var(--color-text-muted)] hover:text-rose-400`}
-                      title="Delete conversation"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </button>
+                {pinned.map(conv => (
+                  <ConvRow key={conv.id} conv={conv} />
                 ))}
               </div>
-            );
-          })
+            )}
+
+            {/* ── Grouped unpinned sections ── */}
+            {bucketOrder.map(bucket => {
+              const items = grouped[bucket];
+              if (!items?.length) return null;
+              return (
+                <div key={bucket}>
+                  <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+                    {bucket}
+                  </div>
+                  {items.map(conv => (
+                    <ConvRow key={conv.id} conv={conv} />
+                  ))}
+                </div>
+              );
+            })}
+          </>
         )}
       </div>
 
@@ -170,7 +235,7 @@ export const ConversationSidebar: React.FC<Props> = ({
           <button
             onClick={signOut}
             title="Sign out"
-            className="flex-shrink-0 p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition opacity-0 group-hover:opacity-100"
+            className="flex-shrink-0 p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition opacity-0 group-hover:opacity-100 touch:opacity-100"
           >
             <LogOut className="w-3.5 h-3.5" />
           </button>

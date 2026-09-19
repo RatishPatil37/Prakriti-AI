@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChatPanel } from '../chat/ChatPanel';
 import { ConversationSidebar } from './ConversationSidebar';
 import { EvidencePanel } from '../evidence/EvidencePanel';
@@ -6,7 +6,7 @@ import { EnvironmentalContextModal } from '../chat/EnvironmentalContextModal';
 import { DocumentManager } from '../uploads/DocumentManager';
 import { EnvironmentalContextData } from '../../lib/sse';
 import { Conversation } from '../../lib/conversations';
-import { Menu } from 'lucide-react';
+import { Menu, BookOpen } from 'lucide-react';
 
 interface Props {
   messages: any[];
@@ -27,6 +27,7 @@ interface Props {
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
   onDeleteConversation: (id: string) => void;
+  onPinToggle: (id: string, currentPinned: boolean) => void;
 }
 
 export const Shell: React.FC<Props> = ({
@@ -48,12 +49,22 @@ export const Shell: React.FC<Props> = ({
   onSelectConversation,
   onNewConversation,
   onDeleteConversation,
+  onPinToggle,
 }) => {
   const [contextModalOpen, setContextModalOpen] = useState(false);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  // Sources panel: auto-open when new evidence arrives, user can close manually
+  const [sourcesOpen, setSourcesOpen] = useState(false);
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
+
+  // Auto-open sources panel when evidence arrives for the first time in a response
+  useEffect(() => {
+    if (evidenceList.length > 0) {
+      setSourcesOpen(true);
+    }
+  }, [evidenceList.length]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
@@ -64,6 +75,7 @@ export const Shell: React.FC<Props> = ({
         onSelectConversation={onSelectConversation}
         onNewConversation={onNewConversation}
         onDeleteConversation={onDeleteConversation}
+        onPinToggle={onPinToggle}
         onOpenDocuments={() => setDocumentModalOpen(true)}
         onOpenContextModal={() => setContextModalOpen(true)}
         mobileOpen={mobileSidebarOpen}
@@ -72,17 +84,39 @@ export const Shell: React.FC<Props> = ({
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Mobile header bar */}
-        <div className="md:hidden h-12 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex items-center px-4 gap-3 flex-shrink-0">
+        {/* Top bar — desktop shows title + BookOpen toggle; mobile shows menu + title */}
+        <div className="h-12 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex items-center px-4 gap-3 flex-shrink-0">
+          {/* Mobile hamburger */}
           <button
             onClick={() => setMobileSidebarOpen(true)}
-            className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition"
+            className="md:hidden p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition"
           >
             <Menu className="w-5 h-5" />
           </button>
+
+          {/* Conversation title */}
           <span className="text-sm font-medium text-[var(--color-text-primary)] truncate flex-1">
             {activeConversation?.title || 'Prakriti AI'}
           </span>
+
+          {/* BookOpen button — toggle Sources panel; shows badge with count */}
+          {evidenceList.length > 0 && (
+            <button
+              onClick={() => setSourcesOpen(v => !v)}
+              title={sourcesOpen ? 'Hide sources' : 'Show sources'}
+              className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
+                sourcesOpen
+                  ? 'bg-[var(--color-surface-2)] text-[var(--color-accent-light)] border border-[var(--color-border)]'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Sources</span>
+              <span className="bg-[var(--color-accent)]/20 text-[var(--color-accent-light)] px-1.5 py-0.5 rounded-full text-[10px] font-semibold">
+                {evidenceList.length}
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Chat + Evidence layout */}
@@ -100,12 +134,13 @@ export const Shell: React.FC<Props> = ({
             conversationTitle={activeConversation?.title ?? null}
           />
 
-          {/* Evidence panel — only shown when there are sources */}
-          {evidenceList.length > 0 && (
+          {/* Evidence panel — only shown when there are sources AND user hasn't closed it */}
+          {evidenceList.length > 0 && sourcesOpen && (
             <EvidencePanel
               evidenceList={evidenceList}
               qualityAssessment={qualityAssessment}
               citationsVerified={citationsVerified}
+              onClose={() => setSourcesOpen(false)}
             />
           )}
         </div>

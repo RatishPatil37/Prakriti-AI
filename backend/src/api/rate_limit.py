@@ -38,11 +38,23 @@ class SlidingWindowRateLimiter:
         else:
             # Unauthenticated IP limit
             limit = settings.RATE_LIMIT_ANONYMOUS_PER_MINUTE
-            client_ip = request.client.host if request.client else "unknown"
-            # Respect X-Forwarded-For if behind a proxy
+            # IP Resolution — only trust X-Forwarded-For from private/internal networks
+            # (i.e. when the direct connection is from a trusted reverse proxy like Render's load balancer).
+            # Never blindly trust the header from arbitrary external IPs (CWE-348).
+            actual_connection_ip = request.client.host if request.client else None
             forwarded = request.headers.get("X-Forwarded-For")
-            if forwarded:
+            is_trusted_proxy = actual_connection_ip and (
+                actual_connection_ip.startswith("127.") or
+                actual_connection_ip.startswith("10.") or
+                actual_connection_ip.startswith("172.") or
+                actual_connection_ip.startswith("192.168.") or
+                actual_connection_ip == "::1"
+            )
+            if forwarded and is_trusted_proxy:
+                # Take the leftmost (original client) IP from the chain
                 client_ip = forwarded.split(",")[0].strip()
+            else:
+                client_ip = actual_connection_ip or "unknown"
 
             history = self._clean_window(self._ip_history[client_ip], window_seconds)
             if len(history) >= limit:

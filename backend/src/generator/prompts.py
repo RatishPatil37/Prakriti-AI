@@ -1,6 +1,18 @@
+import re
 from typing import List, Optional
 from backend.src.api.schemas import EvidenceItem, EnvironmentalContext, ConversationTurn
 from backend.src.intelligence.reasoning_graph import get_reasoning_scaffold_instructions
+
+# Tokens that could collide with our delimiter scheme and enable prompt injection
+_INJECTION_PATTERNS = re.compile(
+    r'(###\s*(SYSTEM|USER|ASSISTANT|INSTRUCTIONS?|QUERY|CONTEXT|EVIDENCE)|'
+    r'</?system>|</?s>|\[INST\]|\[/INST\])',
+    re.IGNORECASE
+)
+
+def sanitize_user_input(text: str) -> str:
+    """Strip prompt-injection delimiter tokens from untrusted user text."""
+    return _INJECTION_PATTERNS.sub('[filtered]', text)
 
 BASE_SYSTEM_PROMPT = """You are the Darukaa.Earth AI Environmental Scientist, an advanced ecological intelligence assistant.
 Your goal is to provide evidence-grounded scientific reasoning, diagnostics, and intervention strategies across soil health, climate, water, land use, and biodiversity.
@@ -87,10 +99,17 @@ def build_scientist_prompt(
     if conversation_context:
         history_lines = []
         for turn in conversation_context[-6:]:
-            history_lines.append(f"{turn.role.capitalize()}: {turn.content}")
+            safe_content = sanitize_user_input(turn.content)
+            history_lines.append(
+                f"<conversation_turn role=\"{turn.role}\">{safe_content}</conversation_turn>"
+            )
         sections.append("### CONVERSATION HISTORY\n" + "\n".join(history_lines) + "\n")
 
-    # 5. User Question
-    sections.append(f"### USER QUERY\n{question}\n\nDeliver a structured, scientifically grounded response. Cite source IDs [S#] inline.")
+    # 5. User Question — wrapped in XML to prevent delimiter injection
+    safe_question = sanitize_user_input(question)
+    sections.append(
+        f"### USER QUERY\n<user_query>{safe_question}</user_query>\n\n"
+        "Deliver a structured, scientifically grounded response. Cite source IDs [S#] inline."
+    )
 
     return "\n".join(sections)

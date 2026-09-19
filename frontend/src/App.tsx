@@ -10,6 +10,7 @@ import {
   listConversations,
   createConversation,
   deleteConversation,
+  togglePinConversation,
   loadMessages,
   saveMessage,
   updateConversationTitle,
@@ -106,6 +107,15 @@ const AppInner: React.FC = () => {
     await deleteConversation(id);
     if (activeConversationId === id) handleNewConversation();
     await refreshConversations();
+  };
+
+  // ─── Pin / unpin conversation ──────────────────────────────────────────────
+  const handlePinToggle = async (id: string, currentPinned: boolean) => {
+    // Optimistic update for snappy UX
+    setConversations(prev =>
+      prev.map(c => c.id === id ? { ...c, is_pinned: !currentPinned } : c)
+    );
+    await togglePinConversation(id, currentPinned);
   };
 
   // ─── Cancel stream ─────────────────────────────────────────────────────────
@@ -253,6 +263,7 @@ const AppInner: React.FC = () => {
       onSelectConversation={loadConversation}
       onNewConversation={handleNewConversation}
       onDeleteConversation={handleDeleteConversation}
+      onPinToggle={handlePinToggle}
     />
   );
 };

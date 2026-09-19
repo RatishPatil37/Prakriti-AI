@@ -1,6 +1,10 @@
-import React from 'react';
-import { ShieldCheck, CheckCircle2, AlertTriangle, BookOpen } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { ShieldCheck, CheckCircle2, AlertTriangle, BookOpen, X } from 'lucide-react';
 import { EvidenceCard } from './EvidenceCard';
+
+const MIN_WIDTH = 280;
+const MAX_WIDTH = 600;
+const DEFAULT_WIDTH = 300;
 
 interface Props {
   evidenceList: any[];
@@ -12,6 +16,7 @@ interface Props {
     has_primary_evidence: boolean;
   } | null;
   citationsVerified?: boolean | null;
+  onClose?: () => void;
 }
 
 const qualityConfig = {
@@ -25,27 +30,89 @@ export const EvidencePanel: React.FC<Props> = ({
   evidenceList,
   qualityAssessment,
   citationsVerified,
+  onClose,
 }) => {
   const quality = qualityAssessment
     ? (qualityConfig[qualityAssessment.status?.toUpperCase() as keyof typeof qualityConfig] ?? qualityConfig.INSUFFICIENT)
     : null;
 
+  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(DEFAULT_WIDTH);
+
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging.current) return;
+    // Panel is on the right side, dragging left (toward 0) increases width
+    const delta = startX.current - e.clientX;
+    const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth.current + delta));
+    setWidth(newWidth);
+  }, []);
+
+  const onMouseUp = useCallback(() => {
+    isDragging.current = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }, [onMouseMove]);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    startX.current = e.clientX;
+    startWidth.current = width;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  // Cleanup listeners on unmount
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [onMouseMove, onMouseUp]);
+
   return (
-    <aside className="w-72 xl:w-80 flex-shrink-0 border-l border-[var(--color-border)] bg-[var(--color-surface)] flex flex-col h-full overflow-hidden hidden lg:flex">
+    <aside
+      className="relative flex-shrink-0 border-l border-[var(--color-border)] bg-[var(--color-surface)] flex flex-col h-full overflow-hidden hidden lg:flex"
+      style={{ width }}
+    >
+      {/* ── Drag handle (left edge) ── */}
+      <div
+        onMouseDown={onMouseDown}
+        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize z-10 group flex items-center justify-center hover:bg-[var(--color-accent)]/20 transition-colors"
+        title="Drag to resize"
+      >
+        <div className="w-0.5 h-10 rounded-full bg-[var(--color-border)] group-hover:bg-[var(--color-accent-light)] transition-colors" />
+      </div>
+
       {/* Header */}
-      <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between flex-shrink-0">
+      <div className="pl-3 pr-3 py-3 border-b border-[var(--color-border)] flex items-center justify-between flex-shrink-0 ml-1.5">
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-[var(--color-text-muted)]" />
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
             Sources
           </h3>
+          <span className="text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)] px-2 py-0.5 rounded-full border border-[var(--color-border)]">
+            {evidenceList.length}
+          </span>
         </div>
-        <span className="text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)] px-2 py-0.5 rounded-full border border-[var(--color-border)]">
-          {evidenceList.length}
-        </span>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition"
+            title="Close sources panel"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 ml-1.5">
         {/* Quality badge */}
         {quality && (
           <div
