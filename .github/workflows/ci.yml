@@ -39,6 +39,7 @@ jobs:
       - name: Run Pytest Test Suite
         env:
           ENVIRONMENT: testing
+          PYTHONPATH: .
           SUPABASE_URL: https://example.supabase.co
           SUPABASE_ANON_KEY: mock-key
-        run: pytest backend/tests -v
+        run: python -m pytest backend/tests -v

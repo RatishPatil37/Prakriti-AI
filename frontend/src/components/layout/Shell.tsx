@@ -6,7 +6,7 @@ import { EnvironmentalContextModal } from '../chat/EnvironmentalContextModal';
 import { DocumentManager } from '../uploads/DocumentManager';
 import { EnvironmentalContextData } from '../../lib/sse';
 import { Conversation } from '../../lib/conversations';
-import { Menu, BookOpen } from 'lucide-react';
+import { Menu, BookOpen, Leaf, RefreshCw } from 'lucide-react';
 
 interface Props {
   messages: any[];
@@ -84,39 +84,67 @@ export const Shell: React.FC<Props> = ({
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Top bar — desktop shows title + BookOpen toggle; mobile shows menu + title */}
-        <div className="h-12 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex items-center px-4 gap-3 flex-shrink-0">
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setMobileSidebarOpen(true)}
-            className="md:hidden p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          {/* Conversation title */}
-          <span className="text-sm font-medium text-[var(--color-text-primary)] truncate flex-1">
-            {activeConversation?.title || 'Prakriti AI'}
-          </span>
-
-          {/* BookOpen button — toggle Sources panel; shows badge with count */}
-          {evidenceList.length > 0 && (
+        {/* Top bar — unified, responsive header */}
+        <div className="h-14 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex items-center px-4 gap-3 flex-shrink-0 justify-between">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            {/* Mobile hamburger */}
             <button
-              onClick={() => setSourcesOpen(v => !v)}
-              title={sourcesOpen ? 'Hide sources' : 'Show sources'}
-              className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
-                sourcesOpen
-                  ? 'bg-[var(--color-surface-2)] text-[var(--color-accent-light)] border border-[var(--color-border)]'
-                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]'
-              }`}
+              onClick={() => setMobileSidebarOpen(true)}
+              className="md:hidden p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition cursor-pointer"
+              aria-label="Toggle menu"
             >
-              <BookOpen className="w-4 h-4" />
-              <span>Sources</span>
-              <span className="bg-[var(--color-accent)]/20 text-[var(--color-accent-light)] px-1.5 py-0.5 rounded-full text-[10px] font-semibold">
-                {evidenceList.length}
-              </span>
+              <Menu className="w-5 h-5" />
             </button>
-          )}
+
+            {/* Conversation title */}
+            <span className="text-sm font-medium text-[var(--color-text-primary)] truncate max-w-sm">
+              {activeConversation?.title || 'Prakriti AI'}
+            </span>
+
+            {/* Thinking indicator */}
+            {isStreaming && streamingStage && (
+              <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)]">
+                <RefreshCw className="w-3 h-3 animate-spin text-[var(--color-accent-light)]" />
+                <span>Thinking…</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* BookOpen button — toggle Sources panel; visible on all viewports */}
+            {evidenceList.length > 0 && (
+              <button
+                onClick={() => setSourcesOpen(v => !v)}
+                title={sourcesOpen ? 'Hide sources' : 'Show sources'}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+                  sourcesOpen
+                    ? 'bg-[var(--color-surface-2)] text-[var(--color-accent-light)] border border-[var(--color-border)]'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border border-transparent'
+                }`}
+              >
+                <BookOpen className="w-4 h-4 text-[var(--color-accent-light)]" />
+                <span className="hidden sm:inline">Sources</span>
+                <span className="bg-[var(--color-accent)]/20 text-[var(--color-accent-light)] px-1.5 py-0.5 rounded-full text-[10px] font-semibold">
+                  {evidenceList.length}
+                </span>
+              </button>
+            )}
+
+            {/* Context button */}
+            <button
+              onClick={() => setContextModalOpen(true)}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] hover:border-[var(--color-border-hover)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition cursor-pointer"
+              title="Configure your site context for more accurate answers"
+            >
+              <Leaf className="w-3.5 h-3.5 text-[var(--color-accent-light)]" />
+              <span className="hidden sm:inline">
+                {environmentalContext.region_or_coords || environmentalContext.climate_zone
+                  ? environmentalContext.region_or_coords?.split('/')[0]?.trim() || 'Site context'
+                  : 'Set site context'}
+              </span>
+              <span className="sm:hidden">Context</span>
+            </button>
+          </div>
         </div>
 
         {/* Chat + Evidence layout */}

@@ -82,36 +82,6 @@ export const ChatPanel: React.FC<Props> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[var(--color-bg)] overflow-hidden">
-      {/* Top bar */}
-      <div className="h-14 border-b border-[var(--color-border)] px-4 md:px-6 flex items-center justify-between bg-[var(--color-surface)] flex-shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          {conversationTitle && (
-            <h2 className="text-sm font-medium text-[var(--color-text-primary)] truncate max-w-xs">
-              {conversationTitle}
-            </h2>
-          )}
-          {isStreaming && streamingStage && (
-            <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)]">
-              <RefreshCw className="w-3 h-3 animate-spin text-[var(--color-accent-light)]" />
-              <span>Thinking…</span>
-            </div>
-          )}
-        </div>
-
-        {/* Context badge */}
-        <button
-          onClick={onOpenContextModal}
-          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] hover:border-[var(--color-border-hover)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition"
-          title="Configure your site context for more accurate answers"
-        >
-          <Leaf className="w-3 h-3 text-[var(--color-accent-light)]" />
-          <span className="hidden sm:inline">
-            {hasContext ? environmentalContext.region_or_coords?.split('/')[0]?.trim() || 'Site context' : 'Set site context'}
-          </span>
-          <span className="sm:hidden">Context</span>
-        </button>
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         {messages.length === 0 && !clarificationData ? (

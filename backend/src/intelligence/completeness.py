@@ -20,6 +20,44 @@ CONCEPTUAL_PATTERNS = [
     r"^difference between\b"
 ]
 
+# Patterns representing non-environmental queries (math, trivia, capitals, coding, pop culture, etc.)
+OUT_OF_SCOPE_PATTERNS = [
+    # Math & arithmetic calculations
+    r"\b(multiplied\s+by|divided\s+by|\bplus\b|\bminus\b|\btimes\b|\bsquare\s+root|\bsin\(|\bcos\(|\btan\()",
+    r"^\s*(\d+\s*[\+\-\*\/\^xX%]\s*\d+)",
+    r"^\s*whats?\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(multiplied|divided|plus|minus|times)",
+    r"\b(calculate|compute|solve)\s+(the\s+)?(equation|derivative|integral|\d+)",
+    # Political, geography & general trivia (capitals, leaders, populations)
+    r"\bcapital\s+of\s+[A-Za-z]+",
+    r"\b(president|prime\s+minister|king|queen|governor|ceo|founder)\s+of\b",
+    r"\bwho\s+is\s+(the\s+)?(president|prime\s+minister|ceo|founder|actor|actress|singer|celebrity)\b",
+    r"\bwho\s+won\s+(the\s+)?(world\s+cup|super\s+bowl|oscar|grammy|election|match|championship)\b",
+    r"\bpopulation\s+of\s+[A-Za-z]+",
+    # Software & programming
+    r"\b(write|create|code|generate)\s+(a\s+)?(python|javascript|typescript|c\+\+|java|rust|html|css|sql|bash|react|docker)\s+(code|script|function|program|app|algorithm)\b",
+    r"\bhow\s+to\s+(install|debug|fix|compile|deploy)\s+(docker|kubernetes|node|npm|pip|git|linux|windows|react)\b",
+    r"\b(binary\s+search|linked\s+list|regex|bubble\s+sort|quicksort|merge\s+sort)\b",
+    # Entertainment, media, sports
+    r"\b(movie|film|song|album|lyrics|netflix|hollywood|bollywood|taylor\s+swift|messi|ronaldo)\b",
+    # Clinical human medicine (not environmental toxicology)
+    r"\b(symptoms\s+of\s+(covid|flu|cancer|diabetes|headache|fever)|cure\s+for\s+(covid|headache|fever)|dosage\s+of\s+\w+)\b",
+    # Financial markets / crypto
+    r"\b(buy|sell)\s+(bitcoin|crypto|stocks|shares|ethereum)\b",
+    r"\bstock\s+price\s+of\b",
+    # Small talk / persona questions
+    r"^\s*(tell\s+me\s+a\s+joke|who\s+made\s+you|who\s+created\s+you|are\s+you\s+sentient|what\s+is\s+your\s+favorite\s+color|what\s+can\s+you\s+do)\s*\??$"
+]
+
+def is_out_of_scope_query(question: str) -> bool:
+    """
+    Returns True if the query is unambiguously outside the environmental & ecological science domain.
+    """
+    q_lower = question.lower().strip()
+    for pattern in OUT_OF_SCOPE_PATTERNS:
+        if re.search(pattern, q_lower):
+            return True
+    return False
+
 def is_intervention_query(question: str) -> bool:
     q_lower = question.lower().strip()
     # Check if purely conceptual
