@@ -1,10 +1,10 @@
 # 🌿 Darukaa.Earth — AI Biodiversity & Environmental Scientist
 
-[![Backend Tests](https://img.shields.io/badge/pytest-11%20passed-10B981.svg?style=flat-square&logo=pytest)](backend/tests/)
-[![Frontend Build](https://img.shields.io/badge/Vite-built%20in%203.3s-A9EE70.svg?style=flat-square&logo=vite)](frontend/)
-[![Qdrant Hybrid RRF](https://img.shields.io/badge/Qdrant-1%2C143%20Vectors%20Indexed-009245.svg?style=flat-square&logo=qdrant)](backend/src/retriever/)
-[![Security Isolation](https://img.shields.io/badge/Multi--Tenancy-Strict%20JWT%20Isolation-0E241C.svg?style=flat-square&logo=auth0)](backend/src/api/auth.py)
-[![Model Engine](https://img.shields.io/badge/LLM-Gemini%203.1%20Flash--Lite-blue.svg?style=flat-square&logo=google)](backend/src/generator/)
+[![Backend Tests](<https://img.shields.io/badge/pytest-11%20passed-10B981.svg?style=flat-square&logo=pytest>)](backend/tests/)
+[![Frontend Build](<https://img.shields.io/badge/Vite-built%20in%203.3s-A9EE70.svg?style=flat-square&logo=vite>)](frontend/)
+[![Qdrant Hybrid RRF](<https://img.shields.io/badge/Qdrant-1%2C143%20Vectors%20Indexed-009245.svg?style=flat-square&logo=qdrant>)](backend/src/retriever/)
+[![Security Isolation](<https://img.shields.io/badge/Multi--Tenancy-Strict%20JWT%20Isolation-0E241C.svg?style=flat-square&logo=auth0>)](backend/src/api/auth.py)
+[![Model Engine](<https://img.shields.io/badge/LLM-Gemini%203.1%20Flash--Lite-blue.svg?style=flat-square&logo=google>)](backend/src/generator/)
 
 An enterprise-grade, evidence-grounded AI conversational intelligence platform built for **Darukaa.Earth**. Operating as an **AI Environmental Scientist**, this system translates complex ecological dynamics into audit-ready, scientific decision intelligence.
 
@@ -14,12 +14,12 @@ The platform couples an authoritative scientific knowledge layer in **Qdrant Clo
 
 ## 🌐 Live Production Deployments
 
-| Component | Provider | Live URL |
-|---|---|---|
-| **Web Application** | Vercel | [https://prakriti-ai-eta.vercel.app](https://prakriti-ai-eta.vercel.app) |
-| **Backend API** | Render | [https://prakriti-ai-jgsn.onrender.com](https://prakriti-ai-jgsn.onrender.com) |
-| **Health Check** | Render | [`/health`](https://prakriti-ai-jgsn.onrender.com/health) |
-| **Readiness Probe** | Render | [`/ready`](https://prakriti-ai-jgsn.onrender.com/ready) |
+| Component                 | Provider | Live URL                                                                      |
+| ------------------------- | -------- | ----------------------------------------------------------------------------- |
+| **Web Application** | Vercel   | [https://prakriti-ai-eta.vercel.app](https://prakriti-ai-eta.vercel.app)       |
+| **Backend API**     | Render   | [https://prakriti-ai-jgsn.onrender.com](https://prakriti-ai-jgsn.onrender.com) |
+| **Health Check**    | Render   | [`/health`](https://prakriti-ai-jgsn.onrender.com/health)                    |
+| **Readiness Probe** | Render   | [`/ready`](https://prakriti-ai-jgsn.onrender.com/ready)                      |
 
 ---
 
@@ -87,6 +87,7 @@ flowchart TD
 ## 🔬 Core Engineering Innovations
 
 ### 1. Hybrid Retrieval Engine (Qdrant Server-Side RRF)
+
 - Hosted in **Qdrant Cloud** cluster under collection `darukaa_knowledge` (`status: green`, **1,143 points / 1,144 vectors indexed**).
 - Dual-vector indexing architecture:
   - **Dense Vectors:** 384-dimensional dense semantic vectors (`sentence-transformers/all-MiniLM-L6-v2`, Cosine distance) generated via FastEmbed.
@@ -95,6 +96,7 @@ flowchart TD
 - **Zero local compute overhead:** Ingested and queried with sub-second execution (~800ms) without in-memory `rank-bm25` bottlenecks.
 
 ### 2. Multi-Tenant Cryptographic Isolation
+
 - **Strict Server-Side Identity:** User identity is strictly derived from verified Supabase JWT signatures (`sub` claim). Client-supplied `user_id` payloads are rejected and never trusted.
 - **Immutable Visibility Filter:** Every single retrieval operation applies an immutable security filter:
   ```python
@@ -105,17 +107,21 @@ flowchart TD
 - **IDOR Protection:** `GET /api/v1/sources/{id}` enforces strict ownership checks to prevent unauthorized access across tenants.
 
 ### 3. Conversational Intelligence & Reasoning
+
 - **Zero-LLM Fast Clarification Filter:** When an intervention request lacks critical ecological variables (e.g. soil organic carbon %, rainfall, land use), the system triggers an immediate clarification event with targeted parameter questions in **sub-5ms without burning LLM tokens**.
 - **Multi-Metric Causal Reasoning Scaffold:**
+
   - Ecological restoration queries explicitly connect $\ge 3$ environmental dimensions:
-  
+
   > 🌾 **Tillage & Cover Crops** ➔ 💧 **Soil Carbon & Moisture Aggregation** ➔ 🐝 **Pollinator & Microbial Biodiversity**
+  >
 
   - Conceptual queries (e.g., *"What is soil organic carbon?"*) provide direct, unforced scientific explanations without synthetic multi-metric extrapolation.
 - **Evidence Quality Gate:** Qualitatively evaluates grounding (`Strong`, `Moderate`, `Limited`, `Insufficient`) based on source corroboration, provenance, and primary fieldwork.
 - **Streaming Citation Integrity Audit:** Emits an authoritative pre-generation citation manifest `[S1]`, `[S2]`, ... in real-time. Post-stream audit verifies that no unlisted citations are cited by the LLM.
 
 ### 4. API Abuse Controls & Defense-in-Depth
+
 - **Sliding-Window Rate Limiting:**
   - Anonymous requests: 5 req/min per IP address.
   - Authenticated requests: 20 req/min per verified `user_id`.
@@ -201,6 +207,7 @@ flowchart TD
 ## 🛠️ Local Development Quickstart
 
 ### Prerequisites
+
 - Python 3.11+
 - Node.js 18+ and npm
 - Qdrant Cloud cluster URL & API key
@@ -208,12 +215,15 @@ flowchart TD
 - Supabase Project URL & Anon/Service keys
 
 ### 1. Environment Setup
+
 Copy the example environment file and fill in your credentials:
+
 ```bash
 cp .env.example .env
 ```
 
 ### 2. Backend Setup
+
 ```bash
 # Install Python dependencies
 pip install -r backend/requirements.txt
@@ -229,6 +239,7 @@ uvicorn backend.src.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### 3. Frontend Setup
+
 ```bash
 cd frontend
 
@@ -253,6 +264,7 @@ python -m pytest backend/tests/ -v
 ```
 
 Expected output:
+
 ```text
 backend/tests/test_citations.py::test_evidence_manifest_and_citation_verification PASSED [  9%]
 backend/tests/test_completeness.py::test_zero_llm_clarification_trigger PASSED [ 18%]
@@ -280,4 +292,5 @@ backend/tests/test_streaming.py::test_client_disconnect_cancels_generation PASSE
 ---
 
 ## 📄 License
+
 MIT License. Built for **Darukaa.Earth**.
