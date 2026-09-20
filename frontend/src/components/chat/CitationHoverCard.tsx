@@ -64,24 +64,24 @@ export const CitationHoverCard: React.FC<Props> = ({
       {isOpen && source && (
         <div
           role="tooltip"
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 max-w-[90vw] p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xl text-left z-50 animate-fadeIn pointer-events-auto backdrop-blur-md"
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 sm:w-80 max-w-[calc(100vw-32px)] p-3.5 sm:p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xl text-left z-50 animate-fadeIn pointer-events-auto backdrop-blur-md"
         >
           {/* Header */}
           <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-[var(--color-border)]/60">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
                 [{source.id || citationId}]
               </span>
-              <span className="text-[11px] font-mono font-semibold text-[var(--color-text-secondary)]">
+              <span className="text-[11px] font-mono font-semibold text-[var(--color-text-secondary)] truncate">
                 {source.organization || 'Peer-Reviewed Source'}
               </span>
               {source.year && (
-                <span className="text-[10px] font-mono text-[var(--color-text-muted)]">
+                <span className="text-[10px] font-mono text-[var(--color-text-muted)] shrink-0">
                   · {source.year}
                 </span>
               )}
             </div>
-            <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400">
+            <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 shrink-0">
               <CheckCircle2 className="w-3 h-3" />
               Verified
             </span>
@@ -100,15 +100,15 @@ export const CitationHoverCard: React.FC<Props> = ({
           )}
 
           {/* Footer Actions */}
-          <div className="mt-3 pt-2 border-t border-[var(--color-border)]/60 flex items-center justify-between text-[10px] font-mono">
+          <div className="mt-3 pt-2 border-t border-[var(--color-border)]/60 flex items-center justify-between text-[10px] font-mono gap-2">
             {source.doi ? (
               <a
                 href={source.source_url || `https://doi.org/${source.doi}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-emerald-400 hover:underline inline-flex items-center gap-1"
+                className="text-emerald-400 hover:underline inline-flex items-center gap-1 truncate"
               >
-                DOI: {source.doi} <ExternalLink className="w-2.5 h-2.5" />
+                DOI: {source.doi} <ExternalLink className="w-2.5 h-2.5 shrink-0" />
               </a>
             ) : (
               <span className="text-[var(--color-text-muted)]">Verified Index</span>
@@ -117,9 +117,9 @@ export const CitationHoverCard: React.FC<Props> = ({
             <button
               type="button"
               onClick={onOpenSourceRail}
-              className="text-[var(--color-text-secondary)] hover:text-emerald-400 transition cursor-pointer"
+              className="text-[var(--color-text-secondary)] hover:text-emerald-400 transition cursor-pointer whitespace-nowrap shrink-0"
             >
-              View in Rail →
+              <span className="hidden sm:inline">View in </span>Rail →
             </button>
           </div>
 

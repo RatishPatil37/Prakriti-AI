@@ -54,53 +54,93 @@ export const DossierExportModal: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn print:p-0 print:bg-white">
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-3xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden print:border-none print:shadow-none print:max-h-none print:w-full">
-        {/* Modal Top Bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] flex-shrink-0 print:hidden">
-          <div className="flex items-center gap-2.5">
-            <FileText className="w-5 h-5 text-emerald-400" />
-            <div>
-              <h3 className="text-sm font-bold text-[var(--color-text-primary)]">
-                Scientific Dossier Export
-              </h3>
-              <p className="text-xs text-[var(--color-text-muted)]">
-                Formal printable whitepaper format with full bibliography
-              </p>
+        {/* Modal Top Bar — Responsive (Desktop: single row, Mobile: 2 stacked rows) */}
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[var(--color-border)] flex-shrink-0 print:hidden space-y-3 sm:space-y-0">
+          {/* Desktop & Mobile Top Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-[var(--color-text-primary)] truncate">
+                  Scientific Dossier Export
+                </h3>
+                <p className="text-xs text-[var(--color-text-muted)] hidden sm:block truncate">
+                  Formal printable whitepaper format with full bibliography
+                </p>
+              </div>
             </div>
+
+            {/* Desktop Action Buttons + Close */}
+            <div className="hidden sm:flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="btn-ghost text-xs py-1.5 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copied ? 'Copied' : 'Copy Text'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="btn-primary text-xs py-1.5 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print / Save PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-xl hover:bg-[var(--color-surface-2)] transition cursor-pointer shrink-0 ml-1"
+                aria-label="Close dossier modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Mobile Close Button */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="sm:hidden p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-xl hover:bg-[var(--color-surface-2)] transition cursor-pointer shrink-0"
+              aria-label="Close dossier modal"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Mobile Action Buttons (Full-Width Row) */}
+          <div className="flex sm:hidden items-center gap-2 pt-1">
             <button
+              type="button"
               onClick={handleCopy}
-              className="btn-ghost text-xs py-1.5 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer"
+              className="flex-1 btn-ghost text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? 'Copied' : 'Copy Text'}</span>
             </button>
             <button
+              type="button"
               onClick={handlePrint}
-              className="btn-primary text-xs py-1.5 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer"
+              className="flex-1 btn-primary text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print / Save PDF</span>
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-xl hover:bg-[var(--color-surface-2)] transition cursor-pointer"
-            >
-              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Scrollable Printable Document Sheet */}
-        <div className="flex-1 overflow-y-auto p-8 sm:p-12 space-y-8 bg-[var(--color-bg)] print:bg-white print:text-black">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-12 space-y-6 sm:space-y-8 bg-[var(--color-bg)] print:bg-white print:text-black">
           {/* Institutional Document Header */}
-          <div className="border-b-2 border-emerald-500/30 pb-6 space-y-2">
-            <div className="flex items-center justify-between text-xs font-mono text-[var(--color-text-muted)] uppercase tracking-wider">
+          <div className="border-b-2 border-emerald-500/30 pb-4 sm:pb-6 space-y-2">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs font-mono text-[var(--color-text-muted)] uppercase tracking-wider">
               <span>Prakriti AI · Research Dossier</span>
-              <span>{new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              <span>{new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
             </div>
-            <h1 className="text-2xl font-bold font-serif text-[var(--color-text-primary)] print:text-black">
+            <h1 className="text-lg sm:text-2xl font-bold font-serif text-[var(--color-text-primary)] print:text-black leading-tight break-words">
               {conversationTitle || 'Ecological Assessment & Restoration Protocol'}
             </h1>
             <p className="text-xs text-[var(--color-text-secondary)]">
@@ -109,28 +149,28 @@ export const DossierExportModal: React.FC<Props> = ({
           </div>
 
           {/* Metadata Block: Site Parameters & Confidence */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] print:border-gray-300 text-xs font-mono">
-            <div>
-              <span className="text-[10px] text-[var(--color-text-muted)] uppercase">Region / Climate</span>
-              <p className="font-semibold text-[var(--color-text-primary)] mt-0.5 truncate">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] print:border-gray-300 text-xs font-mono">
+            <div className="min-w-0">
+              <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider block">Region / Climate</span>
+              <p className="font-semibold text-[var(--color-text-primary)] mt-0.5 truncate" title={environmentalContext.region_or_coords || environmentalContext.climate_zone || 'Global Default'}>
                 {environmentalContext.region_or_coords || environmentalContext.climate_zone || 'Global Default'}
               </p>
             </div>
-            <div>
-              <span className="text-[10px] text-[var(--color-text-muted)] uppercase">SOC Baseline</span>
-              <p className="font-semibold text-[var(--color-text-primary)] mt-0.5">
+            <div className="min-w-0">
+              <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider block">SOC Baseline</span>
+              <p className="font-semibold text-[var(--color-text-primary)] mt-0.5 truncate">
                 {environmentalContext.soil_organic_carbon_pct ? `${environmentalContext.soil_organic_carbon_pct}% SOC` : 'Unspecified'}
               </p>
             </div>
-            <div>
-              <span className="text-[10px] text-[var(--color-text-muted)] uppercase">Precipitation</span>
-              <p className="font-semibold text-[var(--color-text-primary)] mt-0.5">
+            <div className="min-w-0">
+              <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider block">Precipitation</span>
+              <p className="font-semibold text-[var(--color-text-primary)] mt-0.5 truncate">
                 {environmentalContext.annual_rainfall_mm ? `${environmentalContext.annual_rainfall_mm} mm/yr` : 'Unspecified'}
               </p>
             </div>
-            <div>
-              <span className="text-[10px] text-[var(--color-text-muted)] uppercase">Evidence Level</span>
-              <p className="font-semibold text-emerald-400 mt-0.5">
+            <div className="min-w-0">
+              <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider block">Evidence Level</span>
+              <p className="font-semibold text-emerald-400 mt-0.5 truncate whitespace-nowrap">
                 {quality?.status || 'Strong'} Verified
               </p>
             </div>

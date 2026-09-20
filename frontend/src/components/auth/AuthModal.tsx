@@ -129,8 +129,8 @@ export const AuthModal: React.FC<Props> = ({ onClose }) => {
               <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1.5">
                 Email address
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
+              <div className="relative flex items-center">
+                <Mail className="absolute left-3.5 w-4 h-4 text-[var(--color-text-muted)] pointer-events-none" />
                 <input
                   type="email"
                   autoComplete="email"
@@ -138,7 +138,7 @@ export const AuthModal: React.FC<Props> = ({ onClose }) => {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
-                  className="input-field pl-9"
+                  className="input-field has-icon-left !pl-11 !pr-4"
                 />
               </div>
             </div>
@@ -147,7 +147,7 @@ export const AuthModal: React.FC<Props> = ({ onClose }) => {
               <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1.5">
                 Password
               </label>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
@@ -156,12 +156,12 @@ export const AuthModal: React.FC<Props> = ({ onClose }) => {
                   onChange={e => setPassword(e.target.value)}
                   required
                   minLength={8}
-                  className="input-field pr-10"
+                  className="input-field has-icon-right !pl-4 !pr-11"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(p => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition"
+                  className="absolute right-3.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition cursor-pointer p-1"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

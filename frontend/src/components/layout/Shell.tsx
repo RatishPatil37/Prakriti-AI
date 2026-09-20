@@ -215,7 +215,7 @@ export const Shell: React.FC<Props> = ({
             </button>
 
             {/* Conversation title */}
-            <span className="text-sm font-medium text-[var(--color-text-primary)] truncate max-w-sm font-sans">
+            <span className="text-sm font-medium text-[var(--color-text-primary)] truncate max-w-[120px] xs:max-w-[160px] sm:max-w-xs md:max-w-sm font-sans">
               {activeConversation?.title || 'Prakriti'}
             </span>
 
@@ -223,7 +223,7 @@ export const Shell: React.FC<Props> = ({
             <button
               id="tour-context-btn"
               onClick={() => setContextModalOpen(true)}
-              className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono transition cursor-pointer border ${
+              className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono transition cursor-pointer border shrink-0 ${
                 environmentalContext.region_or_coords || environmentalContext.climate_zone
                   ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
                   : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border-[var(--color-border)]'
@@ -239,18 +239,18 @@ export const Shell: React.FC<Props> = ({
 
             {/* Streaming stage pill */}
             {isStreaming && streamingStage && (
-              <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] font-mono">
+              <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] font-mono shrink-0">
                 <RefreshCw className="w-3 h-3 animate-spin text-[var(--color-accent-light)]" />
                 <span>{stageLabel}</span>
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Command Palette Trigger */}
             <button
               onClick={() => setCommandPaletteOpen(true)}
-              className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border border-[var(--color-border)] transition cursor-pointer"
+              className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border border-[var(--color-border)] transition cursor-pointer shrink-0"
               title="Command Palette (Cmd+K / Ctrl+K)"
             >
               <Search className="w-3.5 h-3.5" />
@@ -264,7 +264,7 @@ export const Shell: React.FC<Props> = ({
             <button
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border border-[var(--color-border)] transition cursor-pointer"
+              className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border border-[var(--color-border)] transition cursor-pointer shrink-0"
               aria-label="Toggle theme"
             >
               {theme === 'dark'
@@ -278,13 +278,13 @@ export const Shell: React.FC<Props> = ({
               id="tour-sources-btn"
               onClick={() => setSourcesOpen(v => !v)}
               title={sourcesOpen ? 'Hide sources' : 'Show sources'}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border ${
+              className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border shrink-0 whitespace-nowrap ${
                 sourcesOpen
                   ? 'bg-[var(--color-surface-2)] text-[var(--color-accent-light)] border-[var(--color-border-hover)]'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border-[var(--color-border)]'
               }`}
             >
-              <BookOpen className="w-4 h-4 text-[var(--color-accent-light)]" />
+              <BookOpen className="w-4 h-4 text-[var(--color-accent-light)] shrink-0" />
               <span className="hidden sm:inline">Sources</span>
               {evidenceList.length > 0 && (
                 <span className="bg-[var(--color-accent-subtle)] text-[var(--color-accent-light)] px-1.5 py-0.5 rounded-full text-[10px] font-semibold font-mono">

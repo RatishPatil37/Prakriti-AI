@@ -56,6 +56,8 @@
 
   body {
     background-color: var(--color-bg);
+    background-image: radial-gradient(ellipse 70% 40% at 50% -10%, rgba(31, 92, 58, 0.12), transparent);
+    background-attachment: fixed;
     color: var(--color-text-primary);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
@@ -63,6 +65,10 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  [data-theme="light"] body {
+    background-image: radial-gradient(ellipse 70% 40% at 50% -10%, rgba(31, 92, 58, 0.05), transparent);
   }
 
   h1, h2, h3, h4 {
@@ -124,6 +130,15 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+.animate-slideLeft {
+  animation: slideLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slideLeft {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 /* ─── Editorial section labels (WORKSPACE, EVIDENCE, RESEARCH) ──────────────── */
 /* Use IBM Plex Serif for a research-publication feel */
 .section-label {
@@ -138,8 +153,31 @@
 /* ─── Prose (markdown) ──────────────────────────────────────────────────────── */
 .prose-chat {
   color: var(--color-text-primary);
-  font-size: 0.9rem;
-  line-height: 1.7;
+  font-size: 0.925rem;
+  line-height: 1.72;
+}
+
+@media (min-width: 640px) {
+  .prose-chat {
+    font-size: 0.95rem;
+    line-height: 1.74;
+  }
+}
+
+@media (min-width: 1024px) {
+  .prose-chat {
+    font-size: 0.985rem;
+    line-height: 1.76;
+  }
+  .prose-chat h2 { font-size: 1.15rem; }
+  .prose-chat h3 { font-size: 1.02rem; }
+}
+
+@media (min-width: 1280px) {
+  .prose-chat {
+    font-size: 1rem;
+    line-height: 1.78;
+  }
 }
 
 .prose-chat h1, .prose-chat h2, .prose-chat h3 {
@@ -303,6 +341,14 @@
   width: 100%;
   outline: none;
   transition: border-color 0.15s ease;
+}
+
+.input-field.has-icon-left {
+  padding-left: 2.5rem !important;
+}
+
+.input-field.has-icon-right {
+  padding-right: 2.5rem !important;
 }
 
 .input-field::placeholder { color: var(--color-text-muted); }
