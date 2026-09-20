@@ -26,10 +26,17 @@ def test_out_of_scope_detection_queries():
     assert is_out_of_scope_query("tell me a joke") is True
     assert is_out_of_scope_query("what is your favorite color") is True
 
+    # Casual Greetings & Chit-chat
+    assert is_out_of_scope_query("hello peter") is True
+    assert is_out_of_scope_query("hi") is True
+    assert is_out_of_scope_query("good morning") is True
+    assert is_out_of_scope_query("how are you") is True
+
 def test_legitimate_environmental_queries_not_flagged():
     # Legitimate environmental science queries must NOT be marked out-of-scope
     assert is_out_of_scope_query("How can I increase soil organic carbon in semi-arid soils?") is False
-    assert is_out_of_scope_query("What is the effect of cover crops on mycorrhizal fungi?") is False
+    assert is_out_of_scope_query("Hello! How can I increase soil organic carbon in semi-arid soils?") is False
+    assert is_out_of_scope_query("Hi there, what is the effect of cover crops on mycorrhizal fungi?") is False
     assert is_out_of_scope_query("Explain the relationship between deforestation and regional rainfall") is False
     assert is_out_of_scope_query("What are the primary drivers of biodiversity loss in wetland ecosystems?") is False
     assert is_out_of_scope_query("Recommended agroforestry species for nitrogen fixation in drylands") is False

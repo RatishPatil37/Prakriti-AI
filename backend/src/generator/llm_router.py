@@ -38,9 +38,9 @@ async def stream_gemini_tokens(prompt: str, model_name: Optional[str] = None) ->
     Streams tokens asynchronously from Gemini using the official google-genai SDK.
 
     3-Tier Fallback Chain:
-      1. gemini-2.5-flash-lite  (primary — fastest, lowest TTFT)
-      2. gemini-2.0-flash-lite  (secondary — balance of speed and capability)
-      3. gemini-2.5-flash       (tertiary — highest capability, final safety net)
+      1. gemini-3.5-flash-lite  (primary — fastest, lowest TTFT)
+      2. gemini-3.1-flash-lite  (secondary — balance of speed and capability)
+      3. gemini-3.6-flash       (tertiary — highest capability, final safety net)
 
     Falls back to deterministic offline simulation ONLY when all live models fail
     or API key is not configured.
@@ -84,21 +84,19 @@ async def stream_gemini_tokens(prompt: str, model_name: Optional[str] = None) ->
     logger.info("Running in offline test simulation mode")
     simulated_tokens = [
         "### Ecological Analysis & Recommendation\n\n",
-        "Based on the retrieved empirical evidence from [S1] and [S2], ",
-        "declining biodiversity in this semi-arid agricultural system ",
-        "is primarily driven by the interplay between low Soil Organic Carbon (0.3%) ",
-        "and intensive mechanical tillage.\n\n",
+        "Based on the available agroecological literature, ",
+        "declining biodiversity and soil degradation in agricultural systems ",
+        "are strongly driven by intensive mechanical tillage and reduced organic matter inputs.\n\n",
         "#### Multi-Metric Causal Chain\n",
-        "1. **Tillage Reduction & Cover Cropping** [S1] → Increases soil organic matter and fungal hyphae density.\n",
-        "2. **Soil Organic Carbon Elevation** → Improves aggregate stability and soil water-holding capacity by 15–25%.\n",
-        "3. **Microhabitat Heterogeneity** [S2] → Sustains diverse soil microbial populations and provides floral corridors for pollinators.\n\n",
+        "1. **Tillage Reduction & Cover Cropping** → Protects fungal hyphae networks and minimizes soil aggregate disruption.\n",
+        "2. **Soil Organic Matter Accumulation** → Enhances soil moisture retention and microbial biomass.\n",
+        "3. **Microhabitat Heterogeneity** → Sustains diverse belowground microbial communities and beneficial insect corridors.\n\n",
         "#### Recommended Actionable Interventions\n",
-        "- **Introduce legume-based cover crops** during fallow windows to enhance nitrogen fixation and biomass.\n",
-        "- **Transition to strip-till or no-till practices** to halt organic carbon oxidation.\n\n",
-        "#### Impacted Metrics & Time Horizon\n",
-        "- **Soil Organic Carbon**: Expected increase from 0.3% to 0.5–0.7% over 3–5 seasons.\n",
-        "- **Pollinator Diversity**: Measurable species richness increase within 12–24 months.\n",
-        "- **Confidence**: High, grounded in FAO and IPCC agroecological benchmarks [S1][S2]."
+        "- **Integrate multi-species cover crops** during fallow windows to enhance biomass inputs and nutrient cycling.\n",
+        "- **Transition toward conservation tillage or strip-till** to minimize soil disturbance and organic carbon oxidation.\n\n",
+        "#### Evidence & Uncertainty Notice\n",
+        "- *Quantitative Benchmarks*: Insufficient site-specific empirical evidence to support exact numerical effect sizes or percentage improvements without dedicated field baseline testing.\n",
+        "- *Direction of Intervention*: Directionally supported by global land management benchmarks; localized trials are recommended before scaling."
     ]
     for token in simulated_tokens:
         yield token

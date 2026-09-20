@@ -63,7 +63,39 @@ def seed_public_knowledge_base():
 
             chunks = DocumentChunker.chunk_pages(pages)
             doc_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, filename))
-            title = os.path.splitext(filename)[0].replace("_", " ").title()
+
+            # Detect authentic organization, year, DOI and title from document name
+            fn_lower = filename.lower()
+            if "ipbes" in fn_lower and "2018" in fn_lower:
+                organization = "IPBES"
+                publication_year = 2018
+                title = "IPBES (2018) — Land Degradation and Restoration (SPM)"
+                doi = "10.5281/zenodo.3237392"
+                source_url = "https://doi.org/10.5281/zenodo.3237392"
+            elif "ipbes" in fn_lower and "2019" in fn_lower:
+                organization = "IPBES"
+                publication_year = 2019
+                title = "IPBES (2019) — Global Assessment Report on Biodiversity & Ecosystem Services (SPM)"
+                doi = "10.5281/zenodo.3832005"
+                source_url = "https://doi.org/10.5281/zenodo.3832005"
+            elif "ipcc" in fn_lower:
+                organization = "IPCC"
+                publication_year = 2019
+                title = "IPCC (2019) — Climate Change and Land (SPM)"
+                doi = "10.1017/9781009157988"
+                source_url = "https://www.ipcc.ch/srccl/"
+            elif "iucn" in fn_lower:
+                organization = "IUCN"
+                publication_year = 2020
+                title = "IUCN (2020) — Global Ecosystem Typology 2.0"
+                doi = "10.2305/IUCN.CH.2020.13.en"
+                source_url = "https://doi.org/10.2305/IUCN.CH.2020.13.en"
+            else:
+                organization = "Public Scientific Corpus"
+                publication_year = None
+                title = os.path.splitext(filename)[0].replace("_", " ").title()
+                doi = None
+                source_url = None
 
             # Ingest as public scientific knowledge
             count = DocumentIndexer.index_document_chunks(
@@ -72,11 +104,14 @@ def seed_public_knowledge_base():
                 chunks=chunks,
                 scope="public",
                 owner_user_id=None,
-                organization="Public Scientific Corpus",
-                source_type="primary_research"
+                organization=organization,
+                publication_year=publication_year,
+                source_type="primary_research",
+                doi=doi,
+                source_url=source_url
             )
             total_chunks_indexed += count
-            logger.info(f"Successfully indexed {count} chunks for '{title}' (Document ID: {doc_id})")
+            logger.info(f"Successfully indexed {count} chunks for '{title}' by [{organization}] (Document ID: {doc_id})")
         except Exception as e:
             logger.error(f"Failed to process {filename}: {e}", exc_info=True)
 

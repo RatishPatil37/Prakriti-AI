@@ -54,17 +54,10 @@ export const Shell: React.FC<Props> = ({
   const [contextModalOpen, setContextModalOpen] = useState(false);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  // Sources panel: auto-open when new evidence arrives, user can close manually
+  // Sources panel: user-toggleable on demand (inline sources render under messages)
   const [sourcesOpen, setSourcesOpen] = useState(false);
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
-
-  // Auto-open sources panel when evidence arrives for the first time in a response
-  useEffect(() => {
-    if (evidenceList.length > 0) {
-      setSourcesOpen(true);
-    }
-  }, [evidenceList.length]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
@@ -145,6 +138,7 @@ export const Shell: React.FC<Props> = ({
             clarificationData={clarificationData}
             onAnswerClarification={onSendMessage}
             conversationTitle={activeConversation?.title ?? null}
+            onOpenSources={() => setSourcesOpen(true)}
           />
 
           {/* Evidence panel — shown when toggled open */}

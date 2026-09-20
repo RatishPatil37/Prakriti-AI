@@ -19,6 +19,12 @@ class EnvironmentalContext(BaseModel):
     crop_or_vegetation: Optional[str] = Field(default=None, description="Dominant crops or natural vegetation")
     water_availability: Optional[str] = Field(default=None, description="Water source and availability (e.g. rainfed, irrigated, drought-prone)")
     target_goals: List[str] = Field(default_factory=list, description="Target restoration goals (e.g. carbon sequestration, pollinator diversity)")
+    # Additional Challenge Environmental Indicators (Optional)
+    soil_moisture_pct: Optional[float] = Field(default=None, ge=0.0, le=100.0, description="Volumetric soil moisture percentage")
+    species_richness_count: Optional[int] = Field(default=None, ge=0, description="Observed or surveyed species richness count")
+    habitat_diversity_index: Optional[float] = Field(default=None, ge=0.0, description="Habitat diversity index (e.g. Shannon index)")
+    pollution_level: Optional[str] = Field(default=None, description="Pollution indicators (e.g. nitrate runoff, pesticide residue)")
+    deforestation_impact: Optional[str] = Field(default=None, description="Forest canopy change or deforestation status")
 
 class ConversationTurn(BaseModel):
     role: str = Field(..., description="Role: user, assistant, or system")

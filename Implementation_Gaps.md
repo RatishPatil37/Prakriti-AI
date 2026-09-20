@@ -1,279 +1,680 @@
 
-I compared the current `main` branch of **RatishPatil37/Prakriti-AI** against the uploaded Darukaa.Earth challenge statement. The challenge is explicitly looking for a knowledge-grounded environmental scientist system, with RAG/structured knowledge, clarification + memory, evidence-backed recommendations, and multi-metric reasoning.
+MASTER PROMPT — PRAKRITI-AI FINAL HARDENING PASS
+
+You are working on the existing repository:
+
+https://github.com/RatishPatil37/Prakriti-AI
+
+PROJECT:
+Prakriti-AI — AI Environmental Scientist / biodiversity intelligence system for the Darukaa.Earth assignment.
+
+IMPORTANT:
+This is the FINAL HARDENING PASS.
+Do NOT redesign the application.
+Do NOT replace working architecture.
+Do NOT add random frameworks, unnecessary services, or speculative features.
+Do NOT invent capabilities that are not supported by the existing code.
+Preserve the current frontend design and working deployment.
+Make the smallest safe changes necessary to close the remaining implementation gaps.
+
+CURRENT STACK:
+
+- Frontend: React + TypeScript + Vite + Tailwind
+- Backend: FastAPI
+- Auth: Supabase Auth / JWT
+- Database: Supabase Postgres
+- Vector DB: Qdrant Cloud
+- Retrieval: Dense + BM25 sparse + RRF
+- Embeddings: FastEmbed / all-MiniLM-L6-v2
+- LLM: Gemini
+- Streaming: SSE
+- Deployment: Vercel frontend + Render backend
+- Public scientific corpus: 4 PDFs already present in data/corpus/
+
+KNOWN CURRENT STRENGTHS THAT MUST NOT BE BROKEN:
+
+- Qdrant hybrid retrieval
+- dense + sparse retrieval
+- server-side RRF
+- public/private tenant isolation
+- verified JWT identity
+- private document ownership checks
+- IDOR protection
+- synchronous Qdrant deletion
+- rate limiting
+- zero-LLM completeness / clarification logic
+- multi-metric reasoning scaffold
+- evidence manifest
+- citation ID validation
+- SSE streaming
+- client disconnect handling
+- existing automated backend tests
+- current frontend UI
+- current Vercel/Render deployment
+
+==================================================
+PHASE 0 — INSPECT BEFORE MODIFYING
+===================================
+
+First inspect the CURRENT main branch and understand the actual implementation.
+
+Inspect at minimum:
+
+backend/src/api/auth.py
+backend/src/api/main.py
+backend/src/api/schemas.py
+backend/src/api/supabase_db.py
+backend/src/api/rate_limit.py
+
+backend/src/retriever/hybrid_search.py
+backend/src/retriever/qdrant_store.py
+backend/src/retriever/embeddings.py
+
+backend/src/intelligence/completeness.py
+backend/src/intelligence/reasoning_graph.py
+backend/src/intelligence/evidence_gate.py
+
+backend/src/generator/prompts.py
+backend/src/generator/llm_router.py
+backend/src/generator/stream.py
+
+backend/src/ingestion/parser.py
+backend/src/ingestion/chunker.py
+backend/src/ingestion/indexer.py
+backend/src/ingestion/sanitizer.py
+
+backend/scripts/seed_public_kb.py
+
+backend/tests/
+supabase_schema.sql
+supabase_migration.sql
+README.md
+Implementation_Gaps.md
+
+frontend/src/
+frontend/package.json
+render.yaml
+vercel.json
+.github/workflows/
+
+Before editing, determine which of the issues below are:
+
+1. already fixed,
+2. partially fixed,
+3. still actually present.
 
-## Overall match
+Do NOT blindly implement something that already exists.
+
+==================================================
+ISSUE 1 — SCIENTIFIC KNOWLEDGE MODEL / ENVIRONMENTAL METRICS
+=============================================================
+
+The system currently has structured environmental input fields such as:
 
-**My estimate: ~80% functional match to the problem statement.**
+- soil organic carbon / SOC
+- soil pH
+- rainfall
+- temperature
+- land use
+- crop / vegetation
+- water availability
+- region / coordinates
 
-More importantly, I would describe it as:
+The remaining gap is that some challenge-relevant environmental dimensions are not explicitly modeled as structured data.
 
-> **Strong architectural match, but not yet a fully defensible scientific match.**
+Review the existing schemas and architecture.
 
-The repo implements many of the challenge's intended mechanisms, but several details could cost substantial points during evaluation.
+Where appropriate, add structured support for the following environmental indicators WITHOUT creating an unnecessary separate database or overengineering the system:
 
-### Requirement-by-requirement
+- soil_moisture
+- species_richness
+- habitat_diversity
+- pollution
+- deforestation / forest-cover impact
 
-| Challenge requirement                    | Match                         | What I found                                                                                          |
-| ---------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Retrievable knowledge layer              | **Strong**              | Qdrant + dense embeddings + BM25 sparse retrieval + server-side RRF                                   |
-| Scientific documents indexed             | **Strong**              | IPCC, IPBES and IUCN documents are included in`data/corpus/`                                        |
-| Soil/climate/land/biodiversity knowledge | **Partial**             | Some are represented in structured context, but several required metrics are not modeled explicitly   |
-| Clarifying questions                     | **Strong**              | Zero-LLM completeness engine checks soil, climate/water and land use                                  |
-| Multi-turn conversation                  | **Partial–Strong**     | Recent turns are passed into prompts, but I don't see persistent conversation retrieval               |
-| Evidence-backed recommendations          | **Partial–Strong**     | Evidence manifest + citation validation exist, but claim-to-source grounding is not actually verified |
-| Multi-metric reasoning                   | **Strong conceptually** | Intervention prompts require ≥3 variables and a causal chain                                         |
-| Text input                               | **Strong**              | Supported                                                                                             |
-| Structured JSON input                    | **Strong**              | `EnvironmentalContext` + `QueryRequest`                                                           |
-| Geo/spatial bonus                        | **Partial**             | Coordinates can be supplied, but there is no real geospatial retrieval/analysis                       |
-| Recommendation + metrics + horizon       | **Partial–Strong**     | Prompt requires structured output, but the response schema is not enforced                            |
-| No generic LLM-only solution             | **Strong**              | Definitely not LLM-only; actual retrieval infrastructure exists                                       |
+Requirements:
 
-The challenge explicitly says the knowledge system must cover soil health, land use/cover, biodiversity indicators, climate, and human impacts, and expects RAG/embeddings/vector DB/structured datasets with a clear retrieval path.
+- Keep fields optional.
+- Do not force these values into every query.
+- Preserve the existing completeness behavior.
+- Intervention queries should only request fields that are actually needed.
+- Conceptual questions must continue to work without these metrics.
+- Do not invent default values.
+- Missing metrics must remain explicitly missing/null.
+- Do not fabricate environmental measurements.
 
----
+Use the existing EnvironmentalContext / QueryRequest architecture where possible.
 
-# What matches very well
+Also make sure the metrics are used consistently across:
 
-### 1. The RAG architecture is real, not just claimed
+- schema
+- completeness detection
+- reasoning logic
+- prompts
+- frontend context UI if the UI already has a natural place for them
 
-This is probably the strongest part of the repo.
+Do NOT build a geospatial engine just to claim geo support.
 
-The code actually implements:
+==================================================
+ISSUE 2 — SCIENTIFIC CLAIM → EVIDENCE GROUNDING
+=================================================
 
-`query → dense embedding + BM25 → Qdrant → RRF fusion → evidence manifest → LLM`
+Current citation validation is good at checking whether the model cites valid evidence IDs such as [S1], [S2].
 
-The retrieval code uses two Qdrant prefetches and `Fusion.RRF`, then converts results into `[S1]`, `[S2]`, etc. That's directly aligned with the challenge's requirement for a retrievable knowledge layer rather than prompt-only knowledge.
+However, valid citation ID != proof that the actual claim is supported by the cited source.
 
-Relevant repo files: [`hybrid_search.py`](https://github.com/RatishPatil37/Prakriti-AI/blob/main/backend/src/retriever/hybrid_search.py), [`qdrant_store.py`](https://github.com/RatishPatil37/Prakriti-AI/blob/main/backend/src/retriever/qdrant_store.py), [`indexer.py`](https://github.com/RatishPatil37/Prakriti-AI/blob/main/backend/src/ingestion/indexer.py).
+Strengthen the existing evidence layer without trying to build a full scientific theorem prover.
 
-The challenge makes knowledge-system design worth **20%** and explicitly asks for RAG/vector DB/structured datasets.
+Goal:
+Make quantitative/scientific claims more defensible.
 
-### 2. Clarification behavior is unusually well aligned
+Implement a lightweight claim/evidence integrity mechanism around the existing pipeline.
 
-The challenge gives essentially this example:
+Preferred approach:
 
-> “Biodiversity is declining on my land” → ask for SOC, rainfall, land use.
+1. Build an evidence manifest containing:
 
-The repo implements almost exactly that behavior in `completeness.py`, checking whether soil, climate/water, and land-use information are available before generating an intervention response.
+   - source_id
+   - title
+   - organization
+   - publication year
+   - page
+   - section
+   - excerpt/text
+   - source URL / DOI where available
+2. Ensure the generation prompt explicitly requires:
 
-There's even a corresponding test using the challenge-style prompt. See [`completeness.py`](https://github.com/RatishPatil37/Prakriti-AI/blob/main/backend/src/intelligence/completeness.py) and [`test_completeness.py`](https://github.com/RatishPatil37/Prakriti-AI/blob/main/backend/tests/test_completeness.py).
+   - factual claims must be grounded in retrieved evidence
+   - quantitative claims require evidence
+   - do not invent percentages, thresholds, timelines, or numerical improvements
+   - when evidence does not support a number, state that the evidence is insufficient
+   - do not treat generic model knowledge as retrieved evidence
+3. Strengthen post-generation validation where practical:
 
-That's a very direct match to the conversational-intelligence requirement.
+   - detect numerical claims
+   - detect unsupported quantitative statements
+   - detect citations attached to claims
+   - reject or flag clearly unsupported quantitative claims
+   - do NOT blindly reject every sentence without a citation
+   - allow general explanatory statements where scientifically appropriate
+4. Preserve the existing citation manifest behavior.
+5. If full semantic claim verification would require an additional LLM/API call or expensive infrastructure, do NOT add it unless clearly necessary.
+   Prefer deterministic safeguards plus strong evidence-grounded prompting.
 
-### 3. Multi-metric reasoning is explicitly designed into the system
+IMPORTANT:
+Do not create fake "verification" logic that merely checks whether [S1] exists.
+The implementation should distinguish citation-reference validity from claim-support confidence.
 
-The challenge says this is the **core differentiator** and requires connections such as soil ↔ biodiversity, water ↔ species survival, and land use ↔ fragmentation.
+==================================================
+ISSUE 3 — PUBLIC CORPUS SOURCE METADATA
+========================================
 
-Your repo explicitly instructs intervention responses to connect at least three environmental variables and gives causal relationships such as:
+Audit the public ingestion pipeline, especially:
 
-`soil carbon → moisture retention → microbial activity / plant survival`
+backend/scripts/seed_public_kb.py
+backend/src/ingestion/indexer.py
+backend/src/intelligence/evidence_gate.py
 
-and
+The actual public corpus currently contains these four documents:
 
-`tillage reduction → soil carbon → fungal networks / erosion control`
+1. IPBES_2018_Land_Degradation_and_Restoration_SPM.pdf
+2. IPBES_2019_Global_Biodiversity_Assessment_SPM.pdf
+3. IPCC_2019_Climate_Change_and_Land_SPM.pdf
+4. IUCN_Global_Ecosystem_Typology_2.0.pdf
 
-See [`reasoning_graph.py`](https://github.com/RatishPatil37/Prakriti-AI/blob/main/backend/src/intelligence/reasoning_graph.py) and [`prompts.py`](https://github.com/RatishPatil37/Prakriti-AI/blob/main/backend/src/generator/prompts.py).
+Make sure their metadata preserves the real source organization.
 
-So from an evaluator's perspective, this is much closer to the requested behavior than a normal chatbot.
+Do NOT collapse everything into:
+"Public Scientific Corpus"
 
-### 4. Evidence presentation is excellent at the UX level
+Instead preserve source-specific organization metadata such as:
 
-The system sends an evidence manifest before generation, exposes source metadata, shows excerpts, source IDs, evidence-quality status, and citation verification in the UI.
+- IPBES
+- IPCC
+- IUCN
 
-See [`evidence_gate.py`](https://github.com/RatishPatil37/Prakriti-AI/blob/main/backend/src/intelligence/evidence_gate.py) and [`EvidenceRail.tsx`](https://github.com/RatishPatil37/Prakriti-AI/blob/main/frontend/src/components/evidence/EvidenceRail.tsx).
+Where available, also preserve:
 
-That maps well to the requirement that every recommendation include the action, reasoning, impacted metrics, and a reference.
+- source title
+- publication year
+- official URL
+- DOI
+- section
+- page
+- license
+- source type
 
----
+Most importantly:
+The evidence quality gate must correctly recognize authoritative organizations from these actual documents.
 
-# Where the repo falls short
+Audit the complete flow:
 
-## 1. The biggest gap: the "knowledge base" is not really a structured environmental-metrics database
+PDF
+→ parser
+→ chunker
+→ indexer
+→ Qdrant payload
+→ retrieval
+→ evidence manifest
+→ evidence quality gate
+→ frontend evidence card
 
-The challenge specifically asks the knowledge system to cover:
+Do not fix only one layer.
 
-* soil pH
-* soil organic carbon
-* soil moisture
-* land use / land cover
-* species richness
-* habitat diversity
-* temperature
-* rainfall
-* pollution
-* deforestation
+Add/update tests so source metadata survives ingestion and retrieval.
 
-The repo's structured `EnvironmentalContext` does cover things such as SOC, pH, rainfall, temperature, land use and water availability.
+==================================================
+ISSUE 4 — HARD-CODED QUANTITATIVE FALLBACK CLAIMS
+==================================================
 
-But I do **not** see explicit structured fields for:
+Audit:
 
-`soil_moisture`, `species_richness`, `habitat_diversity`, `pollution`, `deforestation`, etc.
+backend/src/generator/llm_router.py
+backend/src/generator/prompts.py
+backend/src/intelligence/evidence_gate.py
 
-Instead, those concepts are largely left to the document corpus / LLM reasoning.
+Look specifically for hard-coded quantitative claims such as:
 
-So this is:
+- percentage improvements
+- SOC changes
+- water holding capacity percentages
+- biodiversity increases
+- 12–24 month claims
+- numeric ecological benchmarks
 
-**"structured environmental input + scientific document RAG"**
+If any fallback/mock/demo response contains scientific numbers that are not dynamically grounded in retrieved evidence:
 
-rather than:
+REMOVE or replace them with clearly labeled non-quantitative fallback text.
 
-**"structured biodiversity/environmental knowledge system containing the requested metrics."**
+Fallback/demo mode must NEVER look like real scientific evidence.
 
-That distinction could matter quite a lot for the **20% Knowledge System** criterion.
+Examples of acceptable fallback behavior:
 
----
+- "Insufficient retrieved evidence to support a quantitative estimate."
+- "The available evidence supports the direction of the intervention, but not a reliable numerical effect size."
+- "A site-specific estimate would require additional field measurements."
 
-## 2. The scientific grounding mechanism is weaker than it looks
+Do NOT hard-code invented scientific results just to make the UI look impressive.
 
-This is the most important technical issue.
+==================================================
+ISSUE 5 — CONVERSATION MEMORY
+==============================
 
-The repo verifies:
+Audit the current conversation architecture.
 
-> "`[S1]` is a citation that exists in the retrieved manifest"
+There is already:
 
-It does **not** verify:
+- Supabase conversation/message schema
+- recent conversation context passed to the model
 
-> "The claim made in the sentence is actually supported by source S1."
+Determine exactly what is implemented today.
 
-For example, the citation checker only looks for `[S#]` and confirms that the ID exists.
+Goal:
+Support genuine conversation continuity while preserving the current architecture.
 
-So a generated answer could theoretically say:
+At minimum:
 
-> "No-till increases biodiversity by 42% [S1]"
+- the current conversation context should remain available to the next request
+- user messages and assistant responses should be persistable
+- conversation ownership must be tied to verified JWT user_id
+- one user must never read another user's conversation
+- conversation retrieval must be scoped by owner_user_id
+- do not trust conversation ownership from request body
+- do not expose another user's messages through IDs
 
-and pass the citation-integrity check merely because `S1` exists.
+If the current UI/API already has conversation persistence functionality, FIX only the missing restoration/read path.
 
-The challenge requires **scientific reasoning and evidence**, not just valid citation IDs.
+If full persistence is already implemented, do not rewrite it.
 
-This means your current "citation verification" is really **citation reference validation**, not scientific claim validation.
+Add security tests for conversation isolation if absent.
 
----
+IMPORTANT:
+Anonymous scientific queries may continue to work publicly.
+Do not break public querying just because conversation persistence requires authentication.
 
-## 3. There is a concrete metadata problem with your public corpus
+==================================================
+ISSUE 6 — STRICT OUTPUT STRUCTURE
+==================================
 
-This one is especially important.
+Audit the current response format.
 
-`seed_public_kb.py` takes the IPCC/IPBES/IUCN documents but indexes them with:
+The current system prompts the model to produce useful sections such as:
 
-`organization="Public Scientific Corpus"`
+- recommendation
+- reasoning
+- impacted metrics
+- time horizon
+- uncertainty/evidence
 
-rather than preserving the actual organization.
+However, a prompt is not the same thing as a strict response schema.
 
-Meanwhile `evidence_gate.py` determines whether primary/authoritative evidence exists by checking whether the organization contains names such as:
+Determine whether the current API actually enforces a structured response model.
 
-`IPCC`, `FAO`, `IUCN`, `GBIF`, `UNEP`, `CABI`.
+If it does NOT:
+Add a lightweight typed response contract where practical.
 
-So the architecture has a contradiction:
+Preferred fields:
 
-**your documents may be IPCC/IUCN documents, but the indexed metadata says "Public Scientific Corpus."**
+{
+  "answer": "...",
+  "recommendations": [...],
+  "impacted_metrics": [...],
+  "time_horizon": "...",
+  "uncertainty": "...",
+  "evidence_quality": "...",
+  "citations": [...]
+}
 
-That can cause the quality gate to fail to recognize authoritative sources as authoritative.
+Requirements:
 
-This is fixable and worth fixing.
+- preserve current SSE streaming UX
+- do not break free-form scientific explanations
+- do not force meaningless recommendations for conceptual questions
+- fields can be empty/null where not applicable
+- citation IDs must still match retrieved evidence
+- frontend should continue rendering naturally
 
----
+If strict structured parsing would destabilize the existing streaming implementation, introduce a safe response envelope rather than rewriting the entire streaming architecture.
 
-## 4. Some of the numerical example behavior is not actually grounded
+==================================================
+ISSUE 7 — GEO/SPATIAL CLAIMS
+=============================
 
-The offline/test fallback in `llm_router.py` contains hard-coded statements like:
+Audit current region/coordinate support.
 
-* SOC increasing from 0.3% to 0.5–0.7%
-* water-holding capacity improving by 15–25%
-* pollinator diversity increasing within 12–24 months
-* references to FAO/IPCC benchmarks
+Do NOT claim:
+"full geospatial intelligence"
+"GIS analysis"
+"spatial reasoning engine"
 
-The challenge specifically says quantitative claims should be supported by evidence.
+unless such functionality actually exists.
 
-The prompt says "don't invent numbers", which is good.
+It is acceptable to support:
 
-But the fallback generator itself contains predefined quantitative numbers.
+- region text
+- coordinates as environmental context
+- retrieval filters or contextual inputs
 
-That creates a mismatch between your **policy** and your **implementation**.
+Document and implement this accurately.
 
-For a hackathon judge probing the system with numerical questions, I'd consider this a meaningful risk.
+If region_or_coords already exists and works, preserve it.
 
----
+Do not add PostGIS, maps, geocoding APIs, satellite APIs, etc. unless they are already part of the project.
 
-## 5. Multi-turn memory is only partially implemented
+==================================================
+ISSUE 8 — README / DOCUMENTATION HONESTY
+=========================================
 
-The frontend takes the last six messages and sends them as `conversation_context`.
+Audit README.md and remove marketing-heavy or potentially overclaimed wording.
 
-That satisfies a basic version of multi-turn awareness.
+Do NOT describe the project using claims that are not directly demonstrated by the code.
 
-However, I don't see a complete workflow where:
+Examples to avoid unless objectively verified:
 
-`conversation → persistent DB → reload → restore context → continue conversation`
+- "enterprise-grade"
+- "audit-ready"
+- "scientifically verified"
+- "fully autonomous scientist"
+- "sub-second" as a guaranteed response-time promise
+- "claim validation" if only citation-ID validation exists
+- "persistent memory" if only recent prompt context exists
+- "full geospatial intelligence" if only coordinates are accepted
 
-The repo does define `conversations` and `messages` tables in Supabase, but the actual streaming query path isn't using those tables to restore conversation history.
+Use precise wording instead.
 
-So I'd call this:
+Documentation should say what is implemented, not what is planned.
 
-**context passing: yes**
+Keep it professional and technical.
 
-**persistent conversational memory: not fully demonstrated**
+Do NOT mention:
 
-The challenge explicitly asks for multi-turn conversations with memory.
+- "vibe coded"
+- how the project was generated
+- Antigravity
+- internal development workflow
+- AI-generated-code disclaimers
 
----
+==================================================
+ISSUE 9 — FOUR-DOCUMENT KNOWLEDGE BASE DOCUMENTATION
+=====================================================
 
-# Weighted assessment against the hackathon's own scoring
+Make the README explicitly identify the actual public knowledge base.
 
-The challenge weights are:
+Add a concise section:
 
-* Depth of reasoning: 30%
-* Scientific grounding: 25%
-* Knowledge system: 20%
-* Conversational intelligence: 15%
-* Output clarity: 10%
+"Public Scientific Knowledge Base"
 
-My implementation-based estimate would be:
+List exactly these four currently seeded documents:
 
-| Criterion                   |        My estimate |
-| --------------------------- | -----------------: |
-| Depth of reasoning          |  **24 / 30** |
-| Scientific grounding        |  **17 / 25** |
-| Knowledge system design     |  **17 / 20** |
-| Conversational intelligence |  **11 / 15** |
-| Output clarity              |   **8 / 10** |
-| **Total**             | **77 / 100** |
+1. IPBES 2018 — Land Degradation and Restoration — Summary for Policymakers
+2. IPBES 2019 — Global Assessment Report on Biodiversity and Ecosystem Services — Summary for Policymakers
+3. IPCC 2019 — Climate Change and Land — Summary for Policymakers
+4. IUCN — Global Ecosystem Typology 2.0
 
-I would not treat 77 as an objective judge score; it's my code-to-requirement coverage estimate.
+Use the repository filenames where helpful.
 
-The reason it is below ~90 despite the impressive architecture is that several important requirements are **prompt/scaffold enforced rather than actually computed or validated**.
+Make it clear these are the four documents currently present in data/corpus/.
 
----
+Do NOT claim the fifth ~111 MB document is indexed if it is not.
 
-# One more important submission issue
+Do NOT invent additional corpus sources.
 
-There are **two different sets of deployment URLs inside the repository**.
+==================================================
+ISSUE 10 — TESTING
+===================
 
-The README points to one Vercel/Render deployment, while `submission/SUBMISSION_OVERVIEW.md` points to another.
+After changes, expand the existing tests only where necessary.
 
-The challenge requires the submission document to contain the GitHub repository and live demo URL where applicable.
+At minimum verify:
 
-That should be reconciled before submission, because a reviewer following one URL while the other is the actual deployment is an avoidable failure point.
+A. Environmental context
 
----
+- optional metrics accepted
+- missing metrics remain missing
+- conceptual query does not unnecessarily trigger clarification
+- intervention query asks for actually relevant missing context
 
-# Bottom line
+B. Scientific grounding
 
-The repo is **substantially aligned with the challenge** and definitely clears the "not a generic LLM-only chatbot" bar.
+- valid citation ID passes
+- unknown citation ID fails
+- unsupported quantitative claim is flagged/rejected where applicable
+- no fake fallback scientific numbers
 
-Its strongest matches are:
+C. Source metadata
 
-**Qdrant RAG + hybrid retrieval → clarification engine → multi-metric reasoning scaffold → evidence manifest → citation-aware streaming UI.**
+- IPCC metadata remains IPCC
+- IPBES metadata remains IPBES
+- IUCN metadata remains IUCN
 
-Its biggest gaps are:
+D. Tenant security
 
-**structured environmental metrics are incomplete, persistent conversation memory is incomplete, scientific claims are not truly verified against evidence, and the corpus loses source-organization metadata.**
+- User A private document invisible to User B
+- User A private source inaccessible to User B
+- anonymous user sees public corpus only
+- topical-filter relaxation never removes tenant isolation
 
-So I'd characterize it as:
+E. Conversation security
 
-**~80% problem-statement match today, with the core architecture already in place.**
+- User A cannot load User B conversation
+- User A cannot load User B messages
 
-The fastest path to making the implementation much closer to the brief would be to fix those four gaps rather than redesigning the whole system.
+F. Production auth
 
-The challenge statement itself says the goal is to behave like an **AI environmental scientist, not a chatbot**, and your architecture is already pointed in that direction.
+- unsigned JWT rejected in production
+- no client-supplied user_id can override verified JWT identity
 
-Repo: [`RatishPatil37/Prakriti-AI`](https://github.com/RatishPatil37/Prakriti-AI)
-Submission notes: [`submission/SUBMISSION_OVERVIEW.md`](https://github.com/RatishPatil37/Prakriti-AI/blob/main/submission/SUBMISSION_OVERVIEW.md)
+G. Streaming
+
+- SSE still works
+- disconnect cancellation still works
+
+H. Frontend
+
+- TypeScript build passes
+- Vite production build passes
+
+Run the FULL existing backend test suite after modifications.
+
+Do not delete existing tests just to make the suite pass.
+
+==================================================
+ISSUE 11 — PERFORMANCE / DEPLOYMENT SAFETY
+===========================================
+
+Do not introduce:
+
+- Redis
+- Kafka
+- Celery
+- Kubernetes
+- background worker infrastructure
+- another vector DB
+- another database
+- unnecessary external APIs
+
+The current deployment architecture is intentionally simple:
+
+Vercel
+→ Render
+→ Qdrant Cloud
+→ Supabase
+→ Gemini
+
+Preserve that.
+
+Keep warm-request latency instrumentation if it exists.
+
+Do not make "sub-second TTFT" a guaranteed claim.
+Describe it as a measured warm-target/observed metric only if the code actually measures it.
+
+Do not compromise deployment stability for speculative optimization.
+
+==================================================
+ISSUE 12 — SECURITY REVIEW
+===========================
+
+Perform one final security audit of:
+
+- auth
+- document upload
+- source lookup
+- deletion
+- query retrieval
+- conversation retrieval
+- Supabase service-role access
+- Qdrant filters
+- request-body user IDs
+- CORS
+- secrets
+
+Critical invariant:
+
+PUBLIC:
+scope == "public"
+
+PRIVATE:
+scope == "private"
+AND
+owner_user_id == verified JWT sub
+
+This invariant MUST NEVER be relaxed.
+
+Any fallback retrieval/filter relaxation may only remove topical filters.
+It must NEVER remove tenant ownership restrictions.
+
+Never trust:
+
+- user_id from JSON body
+- user_id from query parameter
+- user_id from frontend state
+- conversation owner_id from client payload
+
+Identity must come from verified JWT.
+
+Also verify:
+GET /api/v1/sources/{source_id}
+cannot become an IDOR path.
+
+==================================================
+PHASE 1 — IMPLEMENT CAREFULLY
+==============================
+
+After inspection:
+
+1. Fix only confirmed issues.
+2. Preserve existing architecture.
+3. Keep changes minimal and readable.
+4. Reuse existing classes/functions.
+5. Avoid duplicate logic.
+6. Do not silently change API contracts unless necessary.
+7. Add tests for each important fix.
+8. Keep frontend behavior visually consistent.
+9. Do not add speculative features.
+
+==================================================
+PHASE 2 — VERIFY
+=================
+
+Run:
+
+Backend:
+python -m pytest backend/tests/ -v
+
+Frontend:
+cd frontend
+npm run build
+
+Also perform static inspection of:
+
+- auth boundaries
+- Qdrant filters
+- source metadata
+- fallback generation
+- conversation ownership
+- structured output path
+
+If possible, run the relevant deployed endpoint smoke tests as well.
+
+Expected final condition:
+
+- existing tests still pass
+- new tests pass
+- frontend builds
+- no secrets committed
+- no existing core functionality broken
+
+==================================================
+PHASE 3 — FINAL REPORT
+=======================
+
+At the end, report:
+
+1. Files changed
+2. Bugs/gaps actually fixed
+3. Issues that were already fixed before this pass
+4. Tests added
+5. Full test result
+6. Frontend build result
+7. Any remaining limitations
+8. Any changes that were intentionally NOT made because they would be overengineering
+
+DO NOT claim something is fixed unless you actually verified it.
+
+IMPORTANT FINAL RULE:
+This is a production/submission hardening pass, NOT a feature-generation pass.
+
+Prioritize:
+correctness
+security
+scientific honesty
+evidence grounding
+maintainability
+deployment stability
+
+over:
+adding more features
+adding more infrastructure
+marketing language
+visual gimmicks
+complexity

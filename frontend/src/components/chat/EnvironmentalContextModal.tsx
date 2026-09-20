@@ -179,6 +179,63 @@ export const EnvironmentalContextModal: React.FC<Props> = ({
                 className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-sans"
               />
             </div>
+
+            <div>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Volumetric Soil Moisture (%)</label>
+              <input
+                type="number"
+                step="0.5"
+                placeholder="e.g. 18.5"
+                value={formData.soil_moisture_pct ?? ''}
+                onChange={(e) => setFormData({ ...formData, soil_moisture_pct: e.target.value ? parseFloat(e.target.value) : undefined })}
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Species Richness Count</label>
+              <input
+                type="number"
+                placeholder="e.g. 14"
+                value={formData.species_richness_count ?? ''}
+                onChange={(e) => setFormData({ ...formData, species_richness_count: e.target.value ? parseInt(e.target.value) : undefined })}
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Habitat Diversity Index</label>
+              <input
+                type="number"
+                step="0.1"
+                placeholder="e.g. 1.8"
+                value={formData.habitat_diversity_index ?? ''}
+                onChange={(e) => setFormData({ ...formData, habitat_diversity_index: e.target.value ? parseFloat(e.target.value) : undefined })}
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Pollution / Runoff Observations</label>
+              <input
+                type="text"
+                placeholder="e.g. Low, nitrate runoff detected"
+                value={formData.pollution_level || ''}
+                onChange={(e) => setFormData({ ...formData, pollution_level: e.target.value })}
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-sans"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">Forest Canopy / Deforestation Impact</label>
+              <input
+                type="text"
+                placeholder="e.g. 30% fragmented canopy, bordering secondary forest"
+                value={formData.deforestation_impact || ''}
+                onChange={(e) => setFormData({ ...formData, deforestation_impact: e.target.value })}
+                className="w-full px-3.5 py-2.5 text-xs bg-[#0B1A14] border border-emerald-500/20 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#A9EE70] transition font-sans"
+              />
+            </div>
           </div>
         </div>
 

@@ -11,6 +11,11 @@ export interface EnvironmentalContextData {
   crop_or_vegetation?: string;
   water_availability?: string;
   target_goals?: string[];
+  soil_moisture_pct?: number;
+  species_richness_count?: number;
+  habitat_diversity_index?: number;
+  pollution_level?: string;
+  deforestation_impact?: string;
 }
 
 export interface ConversationTurnData {

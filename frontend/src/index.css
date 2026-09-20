@@ -7,19 +7,19 @@
 
 @layer base {
   :root {
-    /* Design tokens */
-    --color-bg: #0B1512;
-    --color-surface: #111F19;
-    --color-surface-2: #172820;
-    --color-border: rgba(255,255,255,0.07);
-    --color-border-hover: rgba(255,255,255,0.14);
-    --color-text-primary: #F0EDE8;
-    --color-text-secondary: #8B9E96;
-    --color-text-muted: #4D6058;
-    --color-accent: #4E8862;
-    --color-accent-light: #6BAF82;
-    --color-accent-subtle: rgba(78,136,98,0.12);
-    --color-accent-subtle-hover: rgba(78,136,98,0.2);
+    /* Obsidian Botanical Design Tokens */
+    --color-bg: #0A0E13;
+    --color-surface: #121820;
+    --color-surface-2: #18222C;
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-border-hover: rgba(52, 211, 153, 0.25);
+    --color-text-primary: #F8FAFC;
+    --color-text-secondary: #94A3B8;
+    --color-text-muted: #64748B;
+    --color-accent: #059669;
+    --color-accent-light: #10B981;
+    --color-accent-subtle: rgba(16, 185, 129, 0.12);
+    --color-accent-subtle-hover: rgba(16, 185, 129, 0.22);
   }
 
   * {
@@ -42,9 +42,10 @@
   }
 
   h1, h2, h3, h4 {
-    font-family: 'Newsreader', Georgia, serif;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
     line-height: 1.25;
     letter-spacing: -0.02em;
+    font-weight: 700;
   }
 }
 

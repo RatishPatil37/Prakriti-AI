@@ -45,7 +45,7 @@ def assess_evidence_quality(evidence_items: List[EvidenceItem]) -> EvidenceQuali
     reasons = []
 
     # Check for authoritative primary bodies
-    authoritative_bodies = {"IPCC", "FAO", "IUCN", "GBIF", "UNEP", "CABI"}
+    authoritative_bodies = {"IPCC", "IPBES", "FAO", "IUCN", "GBIF", "UNEP", "CABI"}
     has_primary = any(any(auth in org.upper() for auth in authoritative_bodies) for org in orgs)
 
     if has_primary:

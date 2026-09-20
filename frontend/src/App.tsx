@@ -22,6 +22,8 @@ interface UIMessage {
   role: 'user' | 'assistant';
   content: string;
   isStreaming?: boolean;
+  sources?: any[];
+  quality?: any;
 }
 
 // ─── Key for persisting active conversation in sessionStorage ────────────────
@@ -133,6 +135,9 @@ const AppInner: React.FC = () => {
     if (isStreaming) return;
 
     setClarificationData(null);
+    setEvidenceList([]);
+    setQualityAssessment(null);
+    setCitationsVerified(null);
     setIsStreaming(true);
     setStreamingStage('thinking');
 
@@ -192,6 +197,11 @@ const AppInner: React.FC = () => {
         onEvidence: (sources, quality) => {
           setEvidenceList(sources);
           setQualityAssessment(quality);
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === assistantMsgId ? { ...msg, sources, quality } : msg
+            )
+          );
         },
         onToken: (token) => {
           assistantContentRef.current += token;
@@ -214,7 +224,9 @@ const AppInner: React.FC = () => {
           setStreamingStage(null);
           setMessages(prev =>
             prev.map(msg =>
-              msg.id === assistantMsgId ? { ...msg, isStreaming: false } : msg
+              msg.id === assistantMsgId
+                ? { ...msg, isStreaming: false, quality: quality || msg.quality }
+                : msg
             )
           );
           // Persist assistant response to Supabase

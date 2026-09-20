@@ -44,8 +44,17 @@ OUT_OF_SCOPE_PATTERNS = [
     # Financial markets / crypto
     r"\b(buy|sell)\s+(bitcoin|crypto|stocks|shares|ethereum)\b",
     r"\bstock\s+price\s+of\b",
-    # Small talk / persona questions
-    r"^\s*(tell\s+me\s+a\s+joke|who\s+made\s+you|who\s+created\s+you|are\s+you\s+sentient|what\s+is\s+your\s+favorite\s+color|what\s+can\s+you\s+do)\s*\??$"
+    # Small talk / greetings / persona questions
+    r"^\s*(hello|hi|hey|greetings|howdy|good\s+(morning|afternoon|evening|day)|sup|yo)\b",
+    r"^\s*(how\s+are\s+you|who\s+are\s+you|what\s+is\s+your\s+name|what\s+can\s+you\s+do|whats\s+up|what's\s+up)\b",
+    r"^\s*(tell\s+me\s+a\s+joke|who\s+made\s+you|who\s+created\s+you|are\s+you\s+sentient|what\s+is\s+your\s+favorite\s+color)\s*\??$"
+]
+
+ENVIRONMENTAL_KEYWORDS = [
+    "soil", "carbon", "soc", "biodiversity", "ph", "rainfall", "tillage", "crop",
+    "species", "forest", "ecosystem", "water", "agroforestry", "climate", "nitrogen",
+    "fallowing", "cover crop", "pollinator", "land", "pasture", "degradation", "restoration",
+    "moisture", "habitat", "pollution", "deforestation", "mycorrhiz", "canopy", "tilling"
 ]
 
 def is_out_of_scope_query(question: str) -> bool:
@@ -53,8 +62,13 @@ def is_out_of_scope_query(question: str) -> bool:
     Returns True if the query is unambiguously outside the environmental & ecological science domain.
     """
     q_lower = question.lower().strip()
+    has_environmental_topic = any(re.search(rf"\b{kw}", q_lower) for kw in ENVIRONMENTAL_KEYWORDS)
+
     for pattern in OUT_OF_SCOPE_PATTERNS:
         if re.search(pattern, q_lower):
+            # If greeting/smalltalk pattern but user explicitly asked an environmental question, keep in scope
+            if has_environmental_topic and re.search(r"^\s*(hello|hi|hey|greetings|howdy|good\s+(morning|afternoon|evening|day))\b", q_lower):
+                continue
             return True
     return False
 
