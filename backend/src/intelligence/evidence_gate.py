@@ -40,7 +40,7 @@ def assess_evidence_quality(evidence_items: List[EvidenceItem]) -> EvidenceQuali
 
     orgs = list({item.organization for item in evidence_items if item.organization})
     total_sources = len(evidence_items)
-    high_relevance_count = sum(1 for item in evidence_items if item.score >= 0.5 or len(item.text) > 100)
+    high_relevance_count = sum(1 for item in evidence_items if item.score >= 0.5)
 
     reasons = []
 
@@ -71,6 +71,35 @@ def assess_evidence_quality(evidence_items: List[EvidenceItem]) -> EvidenceQuali
         independent_orgs=orgs,
         has_primary_evidence=has_primary
     )
+
+def is_refusal_response(text: str) -> bool:
+    """Detects if response is a standard out-of-scope refusal or redirection."""
+    t = text.lower()
+    refusal_phrases = [
+        "outside what i can help with",
+        "focus on environmental and ecological",
+        "outside my scope",
+        "cannot assist with",
+        "unable to answer",
+        "outside the scope",
+        "not related to environmental",
+    ]
+    return any(p in t for p in refusal_phrases)
+
+def filter_cited_evidence(
+    evidence_items: List[EvidenceItem],
+    cited_ids: List[str],
+    text: str = ""
+) -> List[EvidenceItem]:
+    """
+    Per RESPONSE_BEHAVIOUR.md:
+    retrieved S1,S2,S3 + cited S1 -> UI only shows S1.
+    If no sources were cited, or response is a refusal, returns empty list [].
+    """
+    if not cited_ids or is_refusal_response(text):
+        return []
+    cited_set = set(cited_ids)
+    return [item for item in evidence_items if item.id in cited_set]
 
 def verify_response_citations(
     generated_text: str,

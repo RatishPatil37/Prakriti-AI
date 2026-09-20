@@ -219,20 +219,49 @@ const AppInner: React.FC = () => {
           setMessages(prev => prev.filter(m => m.id !== assistantMsgId));
         },
         onDone: async (doneMetrics, quality, verified) => {
+          const finalContent = assistantContentRef.current;
+          // Extract citations [S1], [S2] etc. from content
+          const citedMatches = finalContent.match(/\[S\d+\]/g) || [];
+          const citedIds = new Set(citedMatches.map(m => m.replace(/\[|\]/g, '')));
+
+          const lower = finalContent.toLowerCase();
+          const isRefusal =
+            lower.includes('only equipped to assist with ecological') ||
+            lower.includes('outside my scope') ||
+            lower.includes('not equipped to answer') ||
+            lower.includes('environmental sciences');
+
           if (quality) setQualityAssessment(quality);
           setCitationsVerified(verified);
           setIsStreaming(false);
           setStreamingStage(null);
+
+          if (isRefusal || citedIds.size === 0) {
+            setEvidenceList([]);
+            setQualityAssessment(null);
+          } else {
+            setEvidenceList(prev => prev.filter(src => citedIds.has(src.id)));
+          }
+
           setMessages(prev =>
             prev.map(msg =>
               msg.id === assistantMsgId
-                ? { ...msg, isStreaming: false, quality: quality || msg.quality }
+                ? {
+                    ...msg,
+                    isStreaming: false,
+                    sources: (isRefusal || citedIds.size === 0)
+                      ? []
+                      : (msg.sources || []).filter((s: any) => citedIds.has(s.id)),
+                    quality: (isRefusal || citedIds.size === 0)
+                      ? null
+                      : (quality || msg.quality),
+                  }
                 : msg
             )
           );
           // Persist assistant response to Supabase
-          if (convId && assistantContentRef.current.trim()) {
-            await saveMessage(convId, 'assistant', assistantContentRef.current);
+          if (convId && finalContent.trim()) {
+            await saveMessage(convId, 'assistant', finalContent);
             await refreshConversations();
           }
         },

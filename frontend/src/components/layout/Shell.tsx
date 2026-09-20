@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ChatPanel } from '../chat/ChatPanel';
 import { ConversationSidebar } from './ConversationSidebar';
 import { EvidencePanel } from '../evidence/EvidencePanel';
@@ -7,7 +7,10 @@ import { DocumentManager } from '../uploads/DocumentManager';
 import { EnvironmentalContextData } from '../../lib/sse';
 import { Conversation } from '../../lib/conversations';
 import { useTheme } from '../../context/ThemeContext';
-import { Menu, BookOpen, RefreshCw, Sun, Moon } from 'lucide-react';
+import {
+  Menu, BookOpen, RefreshCw, Sun, Moon,
+  PanelLeftClose, PanelLeftOpen
+} from 'lucide-react';
 
 interface Props {
   messages: any[];
@@ -58,6 +61,53 @@ export const Shell: React.FC<Props> = ({
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const { theme, toggle: toggleTheme } = useTheme();
 
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    return localStorage.getItem('prakriti_sidebar_open') !== 'false';
+  });
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('prakriti_sidebar_width');
+    return saved ? parseInt(saved, 10) : 260;
+  });
+  const isDraggingRef = useRef(false);
+
+  const toggleDesktopSidebar = () => {
+    setSidebarOpen(prev => {
+      const next = !prev;
+      localStorage.setItem('prakriti_sidebar_open', String(next));
+      return next;
+    });
+  };
+
+  const handleMouseDownResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const newWidth = Math.min(460, Math.max(220, moveEvent.clientX));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        setSidebarWidth(current => {
+          localStorage.setItem('prakriti_sidebar_width', String(current));
+          return current;
+        });
+      }
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   const STAGE_LABELS: Record<string, string> = {
     auth: 'Connecting…',
     thinking: 'Reading query…',
@@ -83,6 +133,9 @@ export const Shell: React.FC<Props> = ({
         onOpenContextModal={() => setContextModalOpen(true)}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
+        isOpen={sidebarOpen}
+        width={sidebarWidth}
+        onResizeMouseDown={handleMouseDownResize}
       />
 
       {/* Main content */}
@@ -90,6 +143,20 @@ export const Shell: React.FC<Props> = ({
         {/* Top bar — unified, responsive header */}
         <div className="h-14 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex items-center px-4 gap-3 flex-shrink-0 justify-between">
           <div className="flex items-center gap-3 min-w-0 flex-1">
+            {/* Desktop sidebar toggle button */}
+            <button
+              onClick={toggleDesktopSidebar}
+              className="hidden md:flex p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition cursor-pointer"
+              title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+              aria-label="Toggle sidebar"
+            >
+              {sidebarOpen ? (
+                <PanelLeftClose className="w-4 h-4" />
+              ) : (
+                <PanelLeftOpen className="w-4 h-4 text-[var(--color-accent-light)]" />
+              )}
+            </button>
+
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileSidebarOpen(true)}

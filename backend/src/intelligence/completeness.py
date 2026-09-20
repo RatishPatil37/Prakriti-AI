@@ -44,6 +44,13 @@ OUT_OF_SCOPE_PATTERNS = [
     # Financial markets / crypto
     r"\b(buy|sell)\s+(bitcoin|crypto|stocks|shares|ethereum)\b",
     r"\bstock\s+price\s+of\b",
+    # Wordplay, spelling, letter counts, and linguistic riddles
+    r"\bhow\s+many\s+['\"]?[a-z]['\"]?s?\s+in\s+",
+    r"\b(spell|spelling\s+of|anagram\s+of|rhyme\s+with)\b",
+    # Recipes & cooking
+    r"\b(recipe\s+for|how\s+to\s+(cook|bake))\b",
+    # Creative writing & stories
+    r"\b(tell\s+me\s+a\s+(riddle|story)|write\s+a\s+(poem|story)\s+about)\b",
     # Weather forecast (not climate science)
     r"\bweather\s+(today|tomorrow|this\s+week|forecast)\b",
     r"\bwhat.s\s+the\s+weather\b",

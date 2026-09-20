@@ -26,6 +26,13 @@ class EnvironmentalContext(BaseModel):
     pollution_level: Optional[str] = Field(default=None, description="Pollution indicators (e.g. nitrate runoff, pesticide residue)")
     deforestation_impact: Optional[str] = Field(default=None, description="Forest canopy change or deforestation status")
 
+    @field_validator("*", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
 class ConversationTurn(BaseModel):
     role: str = Field(..., description="Role: user, assistant, or system")
     content: str = Field(..., description="Message content")
@@ -37,7 +44,7 @@ class QueryFilters(BaseModel):
 class QueryRequest(BaseModel):
     question: str = Field(
         ...,
-        min_length=3,
+        min_length=1,
         max_length=1000,
         description="User question or query regarding environmental ecosystem (Max 1000 chars)"
     )

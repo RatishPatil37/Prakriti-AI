@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import {
   Send, XCircle, AlertCircle, Leaf, User,
-  ArrowRight, BookOpen, ChevronDown, ExternalLink
+  ArrowRight, BookOpen, ChevronDown, ExternalLink, ArrowDown
 } from 'lucide-react';
 import { EnvironmentalContextData } from '../../lib/sse';
+import { TypewriterStatus } from './TypewriterStatus';
 
 export interface Message {
   id: string;
@@ -63,11 +64,24 @@ export const ChatPanel: React.FC<Props> = ({
 }) => {
   const [inputText, setInputText] = useState('');
   const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  const handleScroll = () => {
+    const el = scrollViewportRef.current;
+    if (!el) return;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setShowScrollBottom(distanceToBottom > 140);
+  };
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToBottom('smooth');
   }, [messages, clarificationData]);
 
   // Auto-resize textarea
@@ -91,12 +105,25 @@ export const ChatPanel: React.FC<Props> = ({
     setExpandedSources(prev => ({ ...prev, [msgId]: !prev[msgId] }));
   };
 
-  const hasContext = environmentalContext.region_or_coords || environmentalContext.climate_zone;
+const isRefusal = (text?: string): boolean => {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes('only equipped to assist with ecological') ||
+    lower.includes('outside my scope') ||
+    lower.includes('not equipped to answer') ||
+    lower.includes('environmental sciences')
+  );
+};
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[var(--color-bg)] overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-[var(--color-bg)] overflow-hidden relative">
       {/* Messages Viewport */}
-      <div className="flex-1 overflow-y-auto">
+      <div
+        ref={scrollViewportRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto relative"
+      >
         {messages.length === 0 && !clarificationData ? (
           // Welcome Hero State
           <div className="max-w-4xl mx-auto px-4 md:px-8 py-12 space-y-10 animate-fadeIn">
@@ -203,14 +230,12 @@ export const ChatPanel: React.FC<Props> = ({
                               {processedContent}
                             </ReactMarkdown>
                           ) : msg.isStreaming ? (
-                            <span className="text-[var(--color-text-muted)] text-sm">
-                              Retrieving evidence…
-                            </span>
+                            <TypewriterStatus stage={streamingStage} />
                           ) : null}
                         </div>
 
                         {/* Grounding Sources Accordion (Perplexity / Gemini Style) */}
-                        {msg.sources && msg.sources.length > 0 && (
+                        {!isRefusal(msg.content) && msg.sources && msg.sources.length > 0 && (
                           <div className="mt-4 pt-3.5 border-t border-[var(--color-border)]">
                             <div className="flex items-center justify-between">
                               <button
@@ -342,6 +367,19 @@ export const ChatPanel: React.FC<Props> = ({
           </div>
         )}
       </div>
+
+      {/* Floating Scroll-to-Bottom Arrow Button (ChatGPT style) */}
+      {showScrollBottom && (
+        <button
+          type="button"
+          onClick={() => scrollToBottom('smooth')}
+          aria-label="Scroll to bottom"
+          className="absolute bottom-28 right-6 md:right-10 z-30 p-2.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-accent-light)] shadow-xl transition-all duration-200 cursor-pointer animate-fadeIn flex items-center justify-center hover:scale-105 active:scale-95"
+          title="Scroll to bottom"
+        >
+          <ArrowDown className="w-4 h-4 text-[var(--color-accent-light)]" />
+        </button>
+      )}
 
       {/* Floating Input Dock */}
       <div className="p-4 md:p-6 border-t border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-md flex-shrink-0">

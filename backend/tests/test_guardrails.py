@@ -41,6 +41,15 @@ def test_out_of_scope_weather_forecast():
     assert is_out_of_scope_query("weather forecast for this week") is True
 
 
+def test_out_of_scope_wordplay_and_recipes():
+    assert is_out_of_scope_query("how many r's in rainbow") is True
+    assert is_out_of_scope_query("how many r in rainbow") is True
+    assert is_out_of_scope_query("how many 's' in mississippi") is True
+    assert is_out_of_scope_query("recipe for pizza") is True
+    assert is_out_of_scope_query("how to bake cookies") is True
+    assert is_out_of_scope_query("tell me a story about a dragon") is True
+
+
 def test_out_of_scope_greetings_and_smalltalk():
     assert is_out_of_scope_query("hi") is True
     assert is_out_of_scope_query("hello") is True

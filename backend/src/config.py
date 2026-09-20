@@ -1,7 +1,7 @@
 import os
 from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, AliasChoices
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -48,11 +48,19 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = Field(default="https://example.supabase.co", description="Supabase Project URL")
     SUPABASE_ANON_KEY: str = Field(default="", description="Supabase Anon/Public Key")
     SUPABASE_SERVICE_ROLE_KEY: str = Field(default="", description="Supabase Service Role Key (Backend only)")
-    SUPABASE_JWT_SECRET: str = Field(default="", description="Optional legacy HS256 secret fallback")
+    SUPABASE_JWT_SECRET: str = Field(
+        default="",
+        validation_alias=AliasChoices("SUPABASE_JWT_SECRET", "SUPABASE_JWT_KEY"),
+        description="Supabase HS256 JWT Secret or Key"
+    )
 
     # Langfuse Observability & Tracing
     LANGFUSE_PUBLIC_KEY: str = Field(default="", description="Langfuse Project Public Key")
     LANGFUSE_SECRET_KEY: str = Field(default="", description="Langfuse Project Secret Key")
-    LANGFUSE_BASE_URL: str = Field(default="https://cloud.langfuse.com", description="Langfuse Host / Base URL")
+    LANGFUSE_BASE_URL: str = Field(
+        default="https://cloud.langfuse.com",
+        validation_alias=AliasChoices("LANGFUSE_BASE_URL", "LANGFUSE_HOST"),
+        description="Langfuse Host / Base URL"
+    )
 
 settings = Settings()

@@ -28,13 +28,18 @@ def get_langfuse_client():
         return None
 
     try:
-        from langfuse import get_client
-        _langfuse_client = get_client(
+        import os
+        os.environ["LANGFUSE_PUBLIC_KEY"] = public_key
+        os.environ["LANGFUSE_SECRET_KEY"] = secret_key
+        os.environ["LANGFUSE_HOST"] = base_url
+
+        from langfuse import Langfuse
+        _langfuse_client = Langfuse(
             public_key=public_key,
             secret_key=secret_key,
-            base_url=base_url
+            host=base_url
         )
-        logger.info(f"Langfuse client initialized successfully (base_url: {base_url})")
+        logger.info(f"Langfuse client initialized successfully (host: {base_url})")
     except Exception as e:
         logger.warning(f"Failed to initialize Langfuse client: {e}. Running in no-op mode.")
         _langfuse_client = None

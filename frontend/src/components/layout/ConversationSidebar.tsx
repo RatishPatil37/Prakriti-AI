@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Leaf, Plus, MessageSquare, Trash2, LogOut, Upload,
+  Leaf, SquarePen, MessageSquare, Trash2, LogOut, Upload,
   X, Sliders, Pin, PinOff
 } from 'lucide-react';
 import { Conversation, togglePinConversation } from '../../lib/conversations';
@@ -17,6 +17,9 @@ interface Props {
   onOpenContextModal: () => void;
   mobileOpen: boolean;
   onMobileClose: () => void;
+  isOpen?: boolean;
+  width?: number;
+  onResizeMouseDown?: (e: React.MouseEvent) => void;
 }
 
 const MAX_CONVERSATIONS = 20;
@@ -32,6 +35,9 @@ export const ConversationSidebar: React.FC<Props> = ({
   onOpenContextModal,
   mobileOpen,
   onMobileClose,
+  isOpen = true,
+  width = 260,
+  onResizeMouseDown,
 }) => {
   const { user, signOut } = useAuth();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -146,10 +152,10 @@ export const ConversationSidebar: React.FC<Props> = ({
       <div className="px-3 pt-3 pb-2">
         <button
           onClick={() => { onNewConversation(); onMobileClose(); }}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)] hover:bg-[var(--color-surface-2)] text-sm font-medium transition-all"
+          className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-hover)] hover:bg-[var(--color-surface-2)] text-sm font-medium transition-all group"
         >
-          <Plus className="w-4 h-4 flex-shrink-0" />
-          New research session
+          <span className="truncate">New research</span>
+          <SquarePen className="w-4 h-4 flex-shrink-0 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent-light)] transition" />
         </button>
       </div>
 
@@ -238,9 +244,20 @@ export const ConversationSidebar: React.FC<Props> = ({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 lg:w-72 flex-shrink-0 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex-col h-full z-20">
-        {sidebarContent}
-      </aside>
+      {isOpen && (
+        <aside
+          style={{ width: `${width}px` }}
+          className="hidden md:flex flex-shrink-0 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex-col h-full z-20 relative select-none"
+        >
+          {sidebarContent}
+          {/* Draggable resize handle */}
+          <div
+            onMouseDown={onResizeMouseDown}
+            className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-[var(--color-accent-light)]/40 active:bg-[var(--color-accent-light)] transition-colors z-30"
+            title="Drag to resize sidebar"
+          />
+        </aside>
+      )}
 
       {/* Mobile sidebar overlay */}
       {mobileOpen && (

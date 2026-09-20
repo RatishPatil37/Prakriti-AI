@@ -17,7 +17,8 @@ from backend.src.intelligence.completeness import (
 from backend.src.intelligence.evidence_gate import (
     build_evidence_manifest,
     assess_evidence_quality,
-    verify_response_citations
+    verify_response_citations,
+    filter_cited_evidence
 )
 from backend.src.generator.prompts import build_scientist_prompt
 from backend.src.generator.llm_router import stream_gemini_tokens
@@ -93,38 +94,62 @@ async def generate_query_sse_stream(
                         "completeness_ms": 0.0,
                         "retrieval_ms": 0.0,
                         "total_ms": round(total_ms, 2)
-                    }
+                    },
+                    "evidence_quality": {"status": "Insufficient", "reasons": [], "sources_count": 0, "independent_orgs": [], "has_primary_evidence": False},
+                    "citations_verified": True,
+                    "cited_ids": []
                 })
                 return
 
-            # Stage 2: Completeness & Scope Check
+            # Out-of-scope fast-path refusal (zero-LLM, zero-retrieval, zero sources)
+            if is_out_of_scope:
+                refusal_text = "That's outside what I can help with. I focus on environmental and ecological questions."
+                yield sse_event("evidence", {"sources": [], "quality": {
+                    "status": "Insufficient", "reasons": ["Query is outside environmental science scope."], "sources_count": 0,
+                    "independent_orgs": [], "has_primary_evidence": False
+                }})
+                for char in refusal_text:
+                    yield sse_event("token", {"text": char})
+                total_ms = (time.perf_counter() - t0) * 1000.0
+                yield sse_event("done", {
+                    "request_id": req_id,
+                    "is_out_of_scope": True,
+                    "metrics": {
+                        "auth_ms": round(auth_ms, 2),
+                        "completeness_ms": 0.0,
+                        "retrieval_ms": 0.0,
+                        "total_ms": round(total_ms, 2)
+                    },
+                    "evidence_quality": {"status": "Insufficient", "reasons": [], "sources_count": 0, "independent_orgs": [], "has_primary_evidence": False},
+                    "citations_verified": True,
+                    "cited_ids": []
+                })
+                return
+
+            # Stage 2: Completeness Check (for scientific environmental queries)
             with trace_span(
                 name="guardrails-and-completeness",
                 as_type="guardrail",
-                input_data={"question": query_req.question, "is_out_of_scope": is_out_of_scope}
+                input_data={"question": query_req.question, "is_out_of_scope": False}
             ) as guard_span:
-                if not is_out_of_scope:
-                    clarification = check_environmental_completeness(query_req.question, query_req.environmental_context)
-                    t_completeness = time.perf_counter()
-                    completeness_ms = (t_completeness - t_auth) * 1000.0
+                clarification = check_environmental_completeness(query_req.question, query_req.environmental_context)
+                t_completeness = time.perf_counter()
+                completeness_ms = (t_completeness - t_auth) * 1000.0
 
-                    if clarification:
-                        guard_span.update(output={"action": "clarification", "missing": clarification.missing_fields})
-                        yield sse_event("clarification", clarification.model_dump())
-                        yield sse_event("done", {
-                            "request_id": req_id,
-                            "is_clarification": True,
-                            "metrics": {
-                                "auth_ms": round(auth_ms, 2),
-                                "completeness_ms": round(completeness_ms, 2),
-                                "total_ms": round((time.perf_counter() - t0) * 1000.0, 2)
-                            }
-                        })
-                        return
-                    guard_span.update(output={"action": "proceed", "scope": "environmental"})
-                else:
-                    completeness_ms = 0.0
-                    guard_span.update(output={"action": "refusal", "scope": "out_of_scope"})
+                if clarification:
+                    guard_span.update(output={"action": "clarification", "missing": clarification.missing_fields})
+                    yield sse_event("clarification", clarification.model_dump())
+                    yield sse_event("done", {
+                        "request_id": req_id,
+                        "is_clarification": True,
+                        "metrics": {
+                            "auth_ms": round(auth_ms, 2),
+                            "completeness_ms": round(completeness_ms, 2),
+                            "total_ms": round((time.perf_counter() - t0) * 1000.0, 2)
+                        }
+                    })
+                    return
+                guard_span.update(output={"action": "proceed", "scope": "environmental"})
 
             # Stage 3: Retrieval (Bypassed if query is out of scope to avoid bogus citations)
             yield sse_event("status", {"stage": "retrieval", "request_id": req_id})
@@ -220,6 +245,17 @@ async def generate_query_sse_stream(
                     }
                 )
 
+            # Filter evidence items: only keep sources actually cited in complete_text (per RESPONSE_BEHAVIOUR.md)
+            # If no sources cited or if refusal, filtered list is empty []
+            cited_evidence_items = filter_cited_evidence(evidence_items, cited_ids, complete_text)
+            final_quality = assess_evidence_quality(cited_evidence_items)
+
+            # Emit final pruned evidence list so UI immediately clears candidate chunks if uncited/refusal
+            yield sse_event("evidence", {
+                "sources": [item.model_dump() for item in cited_evidence_items],
+                "quality": final_quality.model_dump()
+            })
+
             llm_ttft_ms = (first_token_time - t_llm_start) * 1000.0 if first_token_time else 0.0
             first_sse_ms = (first_sse_time - t0) * 1000.0 if first_sse_time else 0.0
             total_ms = (t_done - t0) * 1000.0
@@ -247,8 +283,8 @@ async def generate_query_sse_stream(
             yield sse_event("done", {
                 "request_id": req_id,
                 "metrics": metrics.model_dump(),
-                "evidence_quality": quality_assessment.model_dump(),
-                "citations_verified": citations_verified,
+                "evidence_quality": final_quality.model_dump(),
+                "citations_verified": citations_verified if cited_ids else True,
                 "cited_ids": cited_ids,
                 "unverified_citations": unverified_ids
             })

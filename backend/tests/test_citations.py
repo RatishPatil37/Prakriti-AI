@@ -59,3 +59,36 @@ def test_evidence_manifest_and_citation_verification():
     is_valid, cited, unverified = verify_response_citations(invalid_text, manifest)
     assert is_valid is False
     assert "S3" in unverified
+
+def test_filter_cited_evidence_retrieved_multiple_cited_single():
+    # Per RESPONSE_BEHAVIOUR.md line 214-216:
+    # retrieved S1,S2,S3 + cited S1 -> UI only shows S1
+    from backend.src.intelligence.evidence_gate import filter_cited_evidence
+    items = [
+        EvidenceItem(id="S1", document_id="d1", title="T1", organization="IPCC", text="Text 1", score=0.9),
+        EvidenceItem(id="S2", document_id="d2", title="T2", organization="FAO", text="Text 2", score=0.8),
+        EvidenceItem(id="S3", document_id="d3", title="T3", organization="IUCN", text="Text 3", score=0.7),
+    ]
+    text = "Based on [S1], soil carbon increases with agroforestry."
+    cited_items = filter_cited_evidence(items, ["S1"], text)
+    assert len(cited_items) == 1
+    assert cited_items[0].id == "S1"
+
+def test_filter_cited_evidence_refusal_clears_sources():
+    from backend.src.intelligence.evidence_gate import filter_cited_evidence
+    items = [
+        EvidenceItem(id="S1", document_id="d1", title="T1", organization="IPCC", text="Text 1", score=0.9),
+    ]
+    refusal = "That's outside what I can help with. I focus on environmental and ecological questions."
+    assert filter_cited_evidence(items, ["S1"], refusal) == []
+    assert filter_cited_evidence(items, [], refusal) == []
+
+def test_filter_cited_evidence_uncited_response_clears_sources():
+    from backend.src.intelligence.evidence_gate import filter_cited_evidence
+    items = [
+        EvidenceItem(id="S1", document_id="d1", title="T1", organization="IPCC", text="Text 1", score=0.9),
+    ]
+    # Uncited response
+    text = "Soil organic carbon requires balanced microbial activity."
+    assert filter_cited_evidence(items, [], text) == []
+

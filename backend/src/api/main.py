@@ -32,16 +32,35 @@ from backend.src.generator.llm_router import stream_gemini_tokens
 from backend.src.generator.stream import generate_query_sse_stream
 from backend.src.ingestion.parser import DocumentParser
 from backend.src.ingestion.chunker import DocumentChunker
+import asyncio
+from contextlib import asynccontextmanager
+from backend.src.retriever.embeddings import get_dense_model, get_sparse_model
 from backend.src.ingestion.indexer import DocumentIndexer
 from backend.src.api.supabase_db import SupabaseService
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("main")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Pre-warm FastEmbed dense and sparse models in a background thread to prevent cold-start freezes
+    def _warmup():
+        try:
+            logger.info("Pre-warming FastEmbed models in background...")
+            get_dense_model()
+            get_sparse_model()
+            logger.info("FastEmbed models pre-warmed successfully.")
+        except Exception as e:
+            logger.warning(f"FastEmbed pre-warming note: {e}")
+
+    asyncio.create_task(asyncio.to_thread(_warmup))
+    yield
+
 app = FastAPI(
     title="Darukaa.Earth AI Environmental Scientist API",
     version="2.0.0",
-    description="Evidence-grounded conversational environmental intelligence system"
+    description="Evidence-grounded conversational environmental intelligence system",
+    lifespan=lifespan
 )
 
 # Strict CORS configuration with dynamic Vercel domain support
