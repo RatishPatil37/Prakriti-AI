@@ -15,6 +15,9 @@
    - [2.7 TTFT & Cold-Start Optimization: Lifespan Warmup vs. Lazy Loading](#27-ttft--cold-start-optimization-lifespan-warmup-vs-lazy-loading)
    - [2.8 Chat Persistence: Supabase Scoped Schema & Pinning vs. LocalStorage](#28-chat-persistence-supabase-scoped-schema--pinning-vs-localstorage)
    - [2.9 Hosting & Reliability: Render + Vercel + GitHub Actions Keep-Alive](#29-hosting--reliability-render--vercel--github-actions-keep-alive)
+   - [2.10 Post-Stream Citation Pruning & Evidence Gate Truth: Why Pre-Streaming All Candidates Causes Hallucination Mismatches](#210-post-stream-citation-pruning--evidence-gate-truth-why-pre-streaming-all-candidates-causes-hallucination-mismatches)
+   - [2.11 Conditional Clarification vs. Aggressive Interruption: The Claude-Style Questionnaire Architecture](#211-conditional-clarification-vs-aggressive-interruption-the-claude-style-questionnaire-architecture)
+   - [2.12 Desktop Scientific Workstation UI: Spotlight Tour, Command Palette, Citation Popovers & Dossier Generation](#212-desktop-scientific-workstation-ui-spotlight-tour-command-palette-citation-popovers--dossier-generation)
 3. [Key Operational Invariants](#3-key-operational-invariants)
 
 ---
@@ -34,6 +37,9 @@ The following table summarizes the major problem statements, requested enhanceme
 | **Milestone 7: Multi-Conversation History & Pinning** | ChatGPT/Gemini-style conversation sidebar with chat history, session switching, and pinning, respecting database limits. | Extended Supabase Postgres schema with `conversations` & `messages` tables, `is_pinned` column, automatic title generation, and client limit safeguards. |
 | **Milestone 8: Observability & Tracing** | Production-level visibility into TTFT, token usage, guardrail refusals, and step-by-step latency. | Installed and configured the **Langfuse AI Observability Suite** (`tracer.py`), creating root traces and spans for guardrails, retrieval, generation, and citation evaluation with asynchronous non-blocking flush. |
 | **Milestone 9: CI/CD & Cloud Availability** | Automated testing on push/PR and preventing Render free-tier instances from falling asleep. | Created GitHub Actions workflows: `.github/workflows/ci.yml` (frontend TypeScript + backend pytest) and `.github/workflows/keep_alive.yml` (10-minute automated health-check cron). |
+| **Milestone 10: Post-Stream Citation Pruning & Evidence Truth** | Stop displaying uncited retrieval candidates in the Evidence Rail and eliminate false confidence ratings in the Evidence Gate. | Fixed `evidence_gate.py` by removing the `or len(item.text) > 100` false-positive trigger. Implemented `filter_cited_evidence()` in `stream.py`: post-stream regex audit cross-references markdown tokens (`[SX]`) against retrieved chunks, purges uncited candidates (`retrieved S1..S3 + cited S1 → UI displays ONLY S1`), and guarantees `sources: []` for refusals and conversational pleasantries. |
+| **Milestone 11: Production Keep-Alive & Lifespan Pre-Warming** | Prevent Render cold-start delays and eliminate the 12–15s Query 1 FastEmbed model spin-up delay. | Updated `.github/workflows/keep_alive.yml` with live Render URL `https://prakriti-ai-jgsn.onrender.com/health` (10-min cron, <2ms response time). Pre-warmed FastEmbed dense ONNX and sparse BM25 models in FastAPI `lifespan` on startup, cutting initial query latency to sub-second. |
+| **Milestone 12: $1M+ Scientific Workstation UI Overhaul** | Build a high-density, authoritative workstation free of generic AI slop with keyboard navigation, guided onboarding, and publication-ready outputs. | Built Claude-style conditional Q&A questionnaire (`ClarificationQuestionnaire.tsx`), 4-step spotlight walkthrough tour (`OnboardingTour.tsx`), global command palette (`CommandPalette.tsx`, `Cmd+K`), Nature-style citation hover cards (`CitationHoverCard.tsx`), living site profile HUD (`Shell.tsx`), executive printable dossier export (`DossierExportModal.tsx`), resizable Gemini-style sidebar (`ConversationSidebar.tsx`), and landing page typewriter & scroll animations. |
 
 ---
 
@@ -239,16 +245,108 @@ graph LR
 2. **Backend on Render**: Full Python 3.11 container environment with ONNX runtime support and native C-extensions for FastEmbed and PyMuPDF.
 3. **The Free-Tier Problem & The GitHub Actions Solution**:
    * *Problem*: Render free-tier instances spin down after 15 minutes of inactivity, resulting in a 30–50 second cold start on the next user visit.
-   * *Solution*: A dedicated GitHub Actions workflow ([`keep_alive.yml`](file:///c:/Users/patil/OneDrive/Prakriti%20AI/.github/workflows/keep_alive.yml)) runs every 10 minutes during active working hours (08:00 to 23:00 IST), pinging the `/health` endpoint to keep the container warm and responsive with zero cold starts.
+   * *Solution*: A dedicated GitHub Actions workflow ([`keep_alive.yml`](file:///c:/Users/patil/OneDrive/Prakriti%20AI/.github/workflows/keep_alive.yml)) runs every 10 minutes during active working hours (08:00 to 23:00 IST), pinging the `/health` endpoint to keep the container warm and responsive with zero cold starts (<2ms response, compatible with cron-job.org).
+
+---
+
+### 2.10 Post-Stream Citation Pruning & Evidence Gate Truth: Why Pre-Streaming All Candidates Causes Hallucination Mismatches
+
+#### The Candidate Chunk vs. Cited Source Dilemma
+* In naive RAG implementations, the vector search engine retrieves top-$k$ candidate chunks (e.g., $k=5$: `[S1]`, `[S2]`, `[S3]`, `[S4]`, `[S5]`). The backend emits an `evidence` SSE event containing all 5 items to pre-render the UI sidebar.
+* The LLM then generates an authoritative answer, but only cites a subset of the literature (e.g., `[S1]` and `[S2]`).
+* **The Resulting User Defect**: The UI displays 5 sources in the Evidence Rail, but the text only mentions `[S1]` and `[S2]`. The user is confused by the presence of `[S3]`, `[S4]`, and `[S5]`, suspecting that the model used hidden or unverified information.
+* **The Refusal Mismatch**: When a query is out-of-scope (e.g., *"What is 2 multiplied by 4?"*) or a polite greeting (*"Hello Prakriti"*), naive pipelines retrieve semantically closest chunks and display IPCC reports alongside a refusal, creating an immediate impression of algorithmic failure.
+
+#### The Flawed Character-Length Fallacy in Evidence Quality
+* During early iterations, `evidence_gate.py` included a condition: `if score >= 0.7 or len(item.text) > 100: return Strong`.
+* **Why this broke confidence scoring**: In dense scientific PDFs, nearly every chunk exceeds 100 characters. Consequently, weak or non-topical chunks with poor retrieval scores (~0.35) were artificially elevated to `Strong` confidence merely because they were verbose.
+* **The Resolution**: Completely removed the `len(item.text) > 100` clause. Evidence confidence ratings (`Strong`, `Moderate`, `Limited`, `Insufficient`) are now governed exclusively by true mathematical cosine and RRF similarity thresholds.
+
+#### The Canonical Architecture: `filter_cited_evidence()`
+Implemented in [`stream.py`](backend/src/generator/stream.py):
+
+```python
+def filter_cited_evidence(chunks: List[EvidenceItem], response_text: str) -> List[EvidenceItem]:
+    """
+    Cross-references emitted response text against retrieved candidate chunks.
+    Ensures the displayed evidence strictly matches the cited evidence:
+      retrieved [S1, S2, S3] + cited [S1] -> returned sources = [S1]
+    If response is a refusal, small-talk, or lacks citations, returns empty list.
+    """
+    cited_indices = set(int(m) for m in re.findall(r'\[S(\d+)\]', response_text))
+    if not cited_indices:
+        return []
+    return [chunk for chunk in chunks if chunk.citation_index in cited_indices]
+```
+
+* **Frontend Synchronization**: During token generation, the client temporarily displays candidate chunks. Upon receiving the final `done` SSE packet, the client's `onDone(payload)` handler replaces the candidates with the audited list.
+* **Guaranteed Invariant**: `retrieved S1..S3 + cited S1 → UI displays ONLY S1`. Refusals and conversational small-talk strictly emit `sources: []`.
+
+---
+
+### 2.11 Conditional Clarification vs. Aggressive Interruption: The Claude-Style Questionnaire Architecture
+
+#### The Anti-Pattern of Aggressive Interruption
+* When a researcher asks a conceptual or definitional question (e.g., *"What is mycorrhizal inoculation?"* or *"Explain the difference between labile and recalcitrant organic matter"*), they expect an immediate, authoritative answer.
+* Interrupting the user with a modal asking for site parameters (soil pH, rainfall, land use) is adversarial and degrades trust.
+
+#### The Operational Boundary
+* The system enforces a strict boundary between:
+  1. **Conceptual Questions**: Answered immediately using scientific literature without requesting operational parameters.
+  2. **Operational Management Decisions**: Inquiries such as *"How much compost should I apply?"* or *"What cover crops should I sow?"* cannot be safely answered in a vacuum. Applying 20 t/ha of green manure in a semi-arid zone with 250mm rainfall will induce nitrogen immobilization and crop failure, whereas the same intervention in a humid zone accelerates carbon sequestration.
+
+#### Claude-Style Multi-Step Card UX
+Built in [`ClarificationQuestionnaire.tsx`](frontend/src/components/chat/ClarificationQuestionnaire.tsx):
+* **Non-Blocking Inline Card**: Rendered directly in the conversational flow rather than as a disruptive screen-blocking modal.
+* **Keyboard Navigation**: Pressing `1`–`9` selects/toggles choices; `Enter` proceeds to the next step or submits; `Esc` dismisses the questionnaire if the user prefers free-form inquiry.
+* **Custom Write-In Option (`✏️ Something else...`)**: When predefined multiple-choice options do not capture local farm conditions, users can write custom values inline.
+* **Context Continuity**: Submitted questionnaire parameters are automatically ingested into the active conversation's environmental site profile.
+
+---
+
+### 2.12 Desktop Scientific Workstation UI: Spotlight Tour, Command Palette, Citation Popovers & Dossier Generation
+
+#### The "Zero AI Slop" Design Philosophy
+Modern conversational interfaces often suffer from "AI slop" — bloated layouts, gratuitous neon gradients, and slow transitions. Prakriti AI implements an authoritative **Scientific Workstation** aesthetic:
+
+1. **Spotlight Walkthrough Tour (`OnboardingTour.tsx`)**:
+   * Eliminates heavy third-party tour libraries (e.g., Driver.js, Shepherd) which add 40KB+ of bundle overhead and break CSS styling.
+   * Uses a pure SVG/box-shadow cutout technique:
+     ```css
+     box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75);
+     ```
+   * Dynamically tracks target element bounding boxes (`#tour-site-context`, `#tour-command-palette`, `#tour-evidence-panel`, `#tour-theme-toggle`), floating the explanatory card with automatic viewport edge-clamping.
+   * State is persisted in `localStorage` and can be re-launched from the UI help controls.
+
+2. **Editorial Command Palette (`CommandPalette.tsx`)**:
+   * Global `Cmd+K` / `Ctrl+K` keyboard shortcut providing instantaneous, non-mouse navigation.
+   * Fuzzy-search actions across Navigation, Site Parameters, Scientific Tools, and Environmental Presets (e.g., *Semi-Arid Dryland Agroforestry*, *Saline Soil Remediation*).
+
+3. **Nature-Style Citation Hover Cards (`CitationHoverCard.tsx`)**:
+   * Micro-popovers anchored to inline citation tokens `[S1]`, `[S2]`.
+   * Designed with a 200ms enter delay and 150ms exit delay to prevent visual flicker during natural reading.
+   * Displays peer-review verification status (`IPCC AR6`, `IPBES SPM`, `IUCN`), direct verbatim excerpt, relevance score, and external DOI/PDF link.
+
+4. **Printable Scientific Dossier (`DossierExportModal.tsx`)**:
+   * Formats consultations into executive scientific whitepapers.
+   * Uses tailored `@media print` styling: pure white background, crisp serif typography, formal table formatting, and clean page breaks before the bibliography.
+
+5. **Gemini-Style Resizable Sidebar (`ConversationSidebar.tsx`)**:
+   * Drag-to-resize sidebar handle constrained between 220px and 460px (default 280px).
+   * Double-click reset to default width.
+   * State and width persisted in `localStorage` across page reloads.
 
 ---
 
 ## 3. Key Operational Invariants
 
-Whenever maintaining, refactoring, or extending the Prakriti AI codebase, uphold these five non-negotiable engineering invariants:
+Whenever maintaining, refactoring, or extending the Prakriti AI codebase, uphold these seven non-negotiable engineering invariants:
 
-1. **Security Isolation is Immutable**: Never relax the tenant visibility filter in Qdrant or Supabase. Never trust `user_id` passed in request payloads.
-2. **Never Return Synthetic Citations**: Citations must map to real pre-indexed evidence chunks in `darukaa_knowledge`. Out-of-scope queries must bypass retrieval to guarantee zero hallucinations.
-3. **Non-Blocking Telemetry**: Langfuse and external observability hooks must always execute asynchronously and fail gracefully without crashing or delaying the SSE response.
-4. **Sub-Second TTFT**: Any changes to embedding models, tokenizers, or prompts must be benchmarked against `test_ttft_profiling.py` to maintain sub-second warm TTFT.
-5. **Deterministic Pre-Filters Before LLMs**: Always filter missing parameters and out-of-scope queries using sub-5ms deterministic code before consuming LLM tokens.
+1. **Security Isolation is Immutable**: Never relax the tenant visibility filter in Qdrant or Supabase. Never trust `user_id` passed in request payloads; extract it solely from cryptographically verified JWTs.
+2. **Strict Citation Truth & Post-Stream Pruning**: Citations must map to real pre-indexed evidence chunks in `darukaa_knowledge`. Every uncited candidate chunk must be pruned before final display (`retrieved == candidate, displayed == cited`). Out-of-scope queries and small talk must emit `sources: []`.
+3. **Unforced Clarification Invariant**: Clarification questionnaires must only trigger for underspecified operational management decisions. Never interrupt conceptual questions or pleasantries.
+4. **Non-Blocking Telemetry**: Langfuse and external observability hooks must always execute asynchronously in background threads and fail gracefully (`NoOpObservation`) without delaying the SSE stream.
+5. **Sub-Second TTFT & Lifespan Pre-Warming**: Any changes to embedding models or prompt scaffolds must be benchmarked against `test_ttft_profiling.py`. FastAPI `lifespan` must pre-warm all dense and sparse models on boot.
+6. **Deterministic Pre-Filters Before LLMs**: Always filter missing parameters and out-of-scope queries using sub-5ms deterministic code before consuming LLM tokens.
+7. **Zero AI Slop UI Standard**: Maintain high-density, authoritative workstation typography. Provide keyboard ergonomics (`Cmd+K`, 1–9 shortcuts), smooth transitions, and audit-ready printable documentation.
+
