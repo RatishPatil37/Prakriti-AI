@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Leaf, SquarePen, MessageSquare, Trash2, LogOut, Upload,
-  X, Sliders, Pin, PinOff
+  X, Sliders, Pin, PinOff, Compass
 } from 'lucide-react';
 import { Conversation, togglePinConversation } from '../../lib/conversations';
 import { useAuth } from '../../lib/auth';
@@ -20,6 +20,7 @@ interface Props {
   isOpen?: boolean;
   width?: number;
   onResizeMouseDown?: (e: React.MouseEvent) => void;
+  onStartTour?: () => void;
 }
 
 const MAX_CONVERSATIONS = 20;
@@ -38,6 +39,7 @@ export const ConversationSidebar: React.FC<Props> = ({
   isOpen = true,
   width = 260,
   onResizeMouseDown,
+  onStartTour,
 }) => {
   const { user, signOut } = useAuth();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -205,19 +207,30 @@ export const ConversationSidebar: React.FC<Props> = ({
       <div className="px-2 pb-2 border-t border-[var(--color-border)]">
         <div className="pt-2 section-label px-2 py-2">Tools</div>
         <button
+          id="tour-knowledge-btn"
           onClick={() => { onOpenDocuments(); onMobileClose(); }}
-          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition cursor-pointer"
         >
           <Upload className="w-3.5 h-3.5 text-[var(--color-text-muted)] flex-shrink-0" />
           Knowledge base
         </button>
         <button
+          id="tour-context-btn"
           onClick={() => { onOpenContextModal(); onMobileClose(); }}
-          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition cursor-pointer"
         >
           <Sliders className="w-3.5 h-3.5 text-[var(--color-text-muted)] flex-shrink-0" />
           Field context
         </button>
+        {onStartTour && (
+          <button
+            onClick={() => { onStartTour(); onMobileClose(); }}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition cursor-pointer"
+          >
+            <Compass className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+            Quick workspace tour
+          </button>
+        )}
       </div>
 
       {/* User footer */}

@@ -385,3 +385,20 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ─── Printable Research Dossier Styles ──────────────────────────────────────── */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  aside, nav, .landing-nav, #tour-composer, button {
+    display: none !important;
+  }
+  .print\:block {
+    display: block !important;
+  }
+  .print\:text-black {
+    color: #000000 !important;
+  }
+}

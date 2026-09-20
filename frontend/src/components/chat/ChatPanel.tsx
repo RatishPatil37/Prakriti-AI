@@ -2,10 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import {
   Send, XCircle, AlertCircle, Leaf, User,
-  ArrowRight, BookOpen, ChevronDown, ExternalLink, ArrowDown
+  ArrowRight, BookOpen, ChevronDown, ExternalLink, ArrowDown,
+  FileText
 } from 'lucide-react';
 import { EnvironmentalContextData } from '../../lib/sse';
 import { TypewriterStatus } from './TypewriterStatus';
+import { ClarificationQuestionnaire } from './ClarificationQuestionnaire';
+import { CitationHoverCard } from './CitationHoverCard';
 
 export interface Message {
   id: string;
@@ -28,6 +31,7 @@ interface Props {
   onAnswerClarification: (answers: string) => void;
   conversationTitle?: string | null;
   onOpenSources?: () => void;
+  onExportDossier?: (msg: Message) => void;
 }
 
 const EXAMPLE_PROMPTS = [
@@ -61,6 +65,7 @@ export const ChatPanel: React.FC<Props> = ({
   onAnswerClarification,
   conversationTitle,
   onOpenSources,
+  onExportDossier,
 }) => {
   const [inputText, setInputText] = useState('');
   const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
@@ -199,19 +204,18 @@ const isRefusal = (text?: string): boolean => {
                                 a: ({ children, href }) => {
                                   if (href?.startsWith('#cite-')) {
                                     const citeId = href.replace('#cite-', '');
+                                    const matchingSource = msg.sources?.find((s: any) => s.id === citeId);
                                     return (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.preventDefault();
+                                      <CitationHoverCard
+                                        citationId={citeId}
+                                        source={matchingSource}
+                                        onOpenSourceRail={() => {
                                           toggleSourceAccordion(msg.id);
                                           onOpenSources?.();
                                         }}
-                                        className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded text-[11px] font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer transition-all shadow-sm align-baseline"
-                                        title={`View scientific evidence [${citeId}]`}
                                       >
                                         [{children}]
-                                      </button>
+                                      </CitationHoverCard>
                                     );
                                   }
                                   return (
@@ -265,15 +269,29 @@ const isRefusal = (text?: string): boolean => {
                                 />
                               </button>
 
-                              {onOpenSources && (
-                                <button
-                                  type="button"
-                                  onClick={onOpenSources}
-                                  className="text-[11px] font-mono text-[var(--color-text-muted)] hover:text-[var(--color-accent-light)] transition"
-                                >
-                                  View in Rail →
-                                </button>
-                              )}
+                              <div className="flex items-center gap-3">
+                                {onExportDossier && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onExportDossier(msg)}
+                                    className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[var(--color-text-muted)] hover:text-emerald-400 transition cursor-pointer"
+                                    title="Export printable scientific dossier"
+                                  >
+                                    <FileText className="w-3.5 h-3.5" />
+                                    <span>Dossier</span>
+                                  </button>
+                                )}
+
+                                {onOpenSources && (
+                                  <button
+                                    type="button"
+                                    onClick={onOpenSources}
+                                    className="text-[11px] font-mono text-[var(--color-text-muted)] hover:text-[var(--color-accent-light)] transition cursor-pointer"
+                                  >
+                                    View in Rail →
+                                  </button>
+                                )}
+                              </div>
                             </div>
 
                             {expandedSources[msg.id] && (
@@ -328,39 +346,13 @@ const isRefusal = (text?: string): boolean => {
               );
             })}
 
-            {/* Clarification card */}
+            {/* Claude-style Interactive Clarification Questionnaire (Shown strictly when clarificationData is present) */}
             {clarificationData && (
-              <div className="animate-fadeIn bg-[var(--color-surface)] border border-amber-500/25 rounded-2xl p-5 space-y-3 shadow-md">
-                <div className="flex items-center gap-2 text-sm font-semibold text-amber-400">
-                  <AlertCircle className="w-4 h-4" />
-                  A bit more detail would help
-                </div>
-                <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-                  {clarificationData.message || 'To provide a precise, site-specific recommendation, please share a bit more about your local conditions:'}
-                </p>
-                <div className="space-y-1.5">
-                  {clarificationData.suggested_questions?.map((q: string, idx: number) => (
-                    <div key={idx} className="flex items-start gap-2 text-sm bg-[var(--color-surface-2)] px-3 py-2 rounded-lg border border-[var(--color-border)]">
-                      <span className="text-[var(--color-accent-light)] font-medium flex-shrink-0">{idx + 1}.</span>
-                      <span className="text-[var(--color-text-secondary)]">{q}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <button
-                    onClick={onOpenContextModal}
-                    className="btn-primary text-xs py-1.5 px-3"
-                  >
-                    Set site parameters
-                  </button>
-                  <button
-                    onClick={() => onAnswerClarification('My field is semi-arid wheat with SOC 0.3%, 350mm annual rainfall, and intensive tillage.')}
-                    className="btn-ghost text-xs py-1.5 px-3"
-                  >
-                    Use example conditions
-                  </button>
-                </div>
-              </div>
+              <ClarificationQuestionnaire
+                clarificationData={clarificationData}
+                onAnswerClarification={onAnswerClarification}
+                onDismiss={() => onAnswerClarification('Proceed using regional scientific baselines')}
+              />
             )}
 
             <div ref={messagesEndRef} />
@@ -384,7 +376,7 @@ const isRefusal = (text?: string): boolean => {
       {/* Floating Input Dock */}
       <div className="p-4 md:p-6 border-t border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-md flex-shrink-0">
         <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSubmit} className="relative">
+          <form id="tour-composer" onSubmit={handleSubmit} className="relative">
             <div className="relative flex items-center bg-[var(--color-surface)] border border-[var(--color-border)] focus-within:border-[var(--color-accent-light)] rounded-2xl transition-all">
               <textarea
                 ref={textareaRef}

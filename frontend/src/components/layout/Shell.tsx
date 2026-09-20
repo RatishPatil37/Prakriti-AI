@@ -1,15 +1,18 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChatPanel } from '../chat/ChatPanel';
 import { ConversationSidebar } from './ConversationSidebar';
 import { EvidencePanel } from '../evidence/EvidencePanel';
 import { EnvironmentalContextModal } from '../chat/EnvironmentalContextModal';
 import { DocumentManager } from '../uploads/DocumentManager';
+import { OnboardingTour } from '../onboarding/OnboardingTour';
+import { CommandPalette } from '../common/CommandPalette';
+import { DossierExportModal } from '../chat/DossierExportModal';
 import { EnvironmentalContextData } from '../../lib/sse';
 import { Conversation } from '../../lib/conversations';
 import { useTheme } from '../../context/ThemeContext';
 import {
   Menu, BookOpen, RefreshCw, Sun, Moon,
-  PanelLeftClose, PanelLeftOpen
+  PanelLeftClose, PanelLeftOpen, Search, MapPin
 } from 'lucide-react';
 
 interface Props {
@@ -59,6 +62,11 @@ export const Shell: React.FC<Props> = ({
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(() => {
+    return localStorage.getItem('prakriti_tour_completed') !== 'true';
+  });
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [dossierMessage, setDossierMessage] = useState<any | null>(null);
   const { theme, toggle: toggleTheme } = useTheme();
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -69,6 +77,45 @@ export const Shell: React.FC<Props> = ({
     return saved ? parseInt(saved, 10) : 260;
   });
   const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
+  const handleApplyPreset = (preset: 'semi_arid_wheat' | 'degraded_pasture') => {
+    if (preset === 'semi_arid_wheat') {
+      onUpdateContext({
+        region_or_coords: 'Western India / Semi-Arid Plateau',
+        climate_zone: 'Semi-Arid',
+        soil_organic_carbon_pct: 0.3,
+        soil_ph: 7.8,
+        annual_rainfall_mm: 350,
+        current_land_use: 'Monoculture wheat with intensive tillage',
+        crop_or_vegetation: 'Wheat (Triticum aestivum)',
+        water_availability: 'Rainfed with seasonal deficit',
+        target_goals: ['Restore soil carbon', 'Enhance pollinator diversity', 'Mitigate erosion']
+      });
+    } else {
+      onUpdateContext({
+        region_or_coords: 'Deccan Dry Zone',
+        climate_zone: 'Sub-tropical Dry',
+        soil_organic_carbon_pct: 0.45,
+        soil_ph: 6.5,
+        annual_rainfall_mm: 550,
+        current_land_use: 'Continuous cattle grazing',
+        crop_or_vegetation: 'Degraded native scrub & invasive weeds',
+        water_availability: 'Ephemeral surface runoff',
+        target_goals: ['Silvopasture integration', 'Deep root soil aggregation']
+      });
+    }
+  };
 
   const toggleDesktopSidebar = () => {
     setSidebarOpen(prev => {
@@ -136,6 +183,7 @@ export const Shell: React.FC<Props> = ({
         isOpen={sidebarOpen}
         width={sidebarWidth}
         onResizeMouseDown={handleMouseDownResize}
+        onStartTour={() => setTourOpen(true)}
       />
 
       {/* Main content */}
@@ -167,9 +215,27 @@ export const Shell: React.FC<Props> = ({
             </button>
 
             {/* Conversation title */}
-            <span className="text-sm font-medium text-[var(--color-text-primary)] truncate max-w-sm">
+            <span className="text-sm font-medium text-[var(--color-text-primary)] truncate max-w-sm font-sans">
               {activeConversation?.title || 'Prakriti'}
             </span>
+
+            {/* Living Site Profile HUD */}
+            <button
+              id="tour-context-btn"
+              onClick={() => setContextModalOpen(true)}
+              className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono transition cursor-pointer border ${
+                environmentalContext.region_or_coords || environmentalContext.climate_zone
+                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border-[var(--color-border)]'
+              }`}
+              title="Calibrate local site parameters"
+            >
+              <MapPin className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+              <span className="truncate max-w-[220px]">
+                {environmentalContext.region_or_coords || environmentalContext.climate_zone || '+ Calibrate site'}
+                {environmentalContext.soil_organic_carbon_pct ? ` · SOC ${environmentalContext.soil_organic_carbon_pct}%` : ''}
+              </span>
+            </button>
 
             {/* Streaming stage pill */}
             {isStreaming && streamingStage && (
@@ -180,7 +246,20 @@ export const Shell: React.FC<Props> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            {/* Command Palette Trigger */}
+            <button
+              onClick={() => setCommandPaletteOpen(true)}
+              className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border border-[var(--color-border)] transition cursor-pointer"
+              title="Command Palette (Cmd+K / Ctrl+K)"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span className="font-sans">Command</span>
+              <kbd className="text-[10px] font-mono px-1 py-0.2 rounded bg-[var(--color-surface-2)] border border-[var(--color-border)]">
+                ⌘K
+              </kbd>
+            </button>
+
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
@@ -196,6 +275,7 @@ export const Shell: React.FC<Props> = ({
 
             {/* Sources panel toggle */}
             <button
+              id="tour-sources-btn"
               onClick={() => setSourcesOpen(v => !v)}
               title={sourcesOpen ? 'Hide sources' : 'Show sources'}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border ${
@@ -229,6 +309,7 @@ export const Shell: React.FC<Props> = ({
             onAnswerClarification={onSendMessage}
             conversationTitle={activeConversation?.title ?? null}
             onOpenSources={() => setSourcesOpen(true)}
+            onExportDossier={(msg) => setDossierMessage(msg)}
           />
 
           {/* Evidence panel — shown when toggled open */}
@@ -243,7 +324,7 @@ export const Shell: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Modals & Tools */}
       <EnvironmentalContextModal
         isOpen={contextModalOpen}
         onClose={() => setContextModalOpen(false)}
@@ -255,6 +336,35 @@ export const Shell: React.FC<Props> = ({
         isOpen={documentModalOpen}
         onClose={() => setDocumentModalOpen(false)}
         authToken={authToken}
+      />
+
+      {/* Onboarding Tour */}
+      <OnboardingTour
+        isOpen={tourOpen}
+        onClose={() => setTourOpen(false)}
+      />
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onNewSession={onNewConversation}
+        onOpenContext={() => setContextModalOpen(true)}
+        onOpenDocuments={() => setDocumentModalOpen(true)}
+        onToggleSources={() => setSourcesOpen(v => !v)}
+        onStartTour={() => setTourOpen(true)}
+        onApplyPreset={handleApplyPreset}
+      />
+
+      {/* Dossier Export Modal */}
+      <DossierExportModal
+        isOpen={!!dossierMessage}
+        onClose={() => setDossierMessage(null)}
+        messageContent={dossierMessage?.content || ''}
+        sources={dossierMessage?.sources || []}
+        quality={dossierMessage?.quality}
+        environmentalContext={environmentalContext}
+        conversationTitle={activeConversation?.title}
       />
     </div>
   );
