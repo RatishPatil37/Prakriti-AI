@@ -20,10 +20,10 @@ interface Props {
 }
 
 const qualityConfig = {
-  STRONG:       { label: 'Strong evidence',    dot: '#6BAF82', bg: 'rgba(78,136,98,0.08)', border: 'rgba(78,136,98,0.25)', text: '#6BAF82' },
-  MODERATE:     { label: 'Moderate evidence',  dot: '#60A5FA', bg: 'rgba(59,130,246,0.07)', border: 'rgba(59,130,246,0.2)', text: '#60A5FA' },
-  LIMITED:      { label: 'Limited evidence',   dot: '#FBBF24', bg: 'rgba(245,158,11,0.07)', border: 'rgba(245,158,11,0.2)', text: '#FBBF24' },
-  INSUFFICIENT: { label: 'Needs more data',    dot: '#F87171', bg: 'rgba(239,68,68,0.07)', border: 'rgba(239,68,68,0.2)', text: '#F87171' },
+  STRONG:       { label: 'Strong',    dot: 'var(--color-accent-light)', bg: 'var(--color-accent-subtle)', border: 'var(--color-accent-subtle-hover)', text: 'var(--color-accent-light)' },
+  MODERATE:     { label: 'Moderate',  dot: '#60A5FA', bg: 'rgba(59,130,246,0.07)', border: 'rgba(59,130,246,0.18)', text: '#60A5FA' },
+  LIMITED:      { label: 'Limited',   dot: '#FBBF24', bg: 'rgba(245,158,11,0.07)', border: 'rgba(245,158,11,0.18)', text: '#FBBF24' },
+  INSUFFICIENT: { label: 'Insufficient data', dot: '#F87171', bg: 'rgba(239,68,68,0.07)', border: 'rgba(239,68,68,0.18)', text: '#F87171' },
 };
 
 export const EvidencePanel: React.FC<Props> = ({
@@ -93,21 +93,20 @@ export const EvidencePanel: React.FC<Props> = ({
       {/* Header */}
       <div className="pl-3 pr-3 py-3 border-b border-[var(--color-border)] flex items-center justify-between flex-shrink-0 ml-1.5">
         <div className="flex items-center gap-2">
-          <BookOpen className="w-4 h-4 text-[var(--color-text-muted)]" />
-          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-            Sources
-          </h3>
-          <span className="text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)] px-2 py-0.5 rounded-full border border-[var(--color-border)]">
-            {evidenceList.length}
-          </span>
+          <span className="section-label">Evidence</span>
+          {evidenceList.length > 0 && (
+            <span className="text-[10px] font-mono text-[var(--color-text-muted)] bg-[var(--color-surface-2)] px-1.5 py-0.5 rounded border border-[var(--color-border)]">
+              {evidenceList.length}
+            </span>
+          )}
         </div>
         {onClose && (
           <button
             onClick={onClose}
             className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition"
-            title="Close sources panel"
+            title="Close"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
@@ -150,21 +149,15 @@ export const EvidencePanel: React.FC<Props> = ({
 
         {/* Source cards or empty state */}
         {evidenceList.length === 0 ? (
-          <div className="text-center py-12 px-2 space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border)] flex items-center justify-center mx-auto text-[var(--color-text-muted)]">
-              <BookOpen className="w-5 h-5 text-[var(--color-accent-light)] opacity-75" />
-            </div>
-            <p className="text-xs font-semibold text-[var(--color-text-primary)]">
-              No sources cited yet
-            </p>
-            <p className="text-xs text-[var(--color-text-muted)] leading-relaxed max-w-[240px] mx-auto">
-              When an answer references peer-reviewed research, verified citations and source details will appear here.
+          <div className="text-center py-12 px-4">
+            <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+              When a response references peer-reviewed research, citations will appear here.
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {evidenceList.map((item) => (
-              <EvidenceCard key={item.id} item={item} />
+          <div className="space-y-0 divide-y divide-[var(--color-border)]">
+            {evidenceList.map((item, idx) => (
+              <EvidenceCard key={item.id} item={item} index={idx + 1} />
             ))}
           </div>
         )}

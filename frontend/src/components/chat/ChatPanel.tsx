@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import {
   Send, XCircle, AlertCircle, Leaf, User,
-  ArrowRight, RefreshCw, BookOpen, ChevronDown, ExternalLink, Sparkles
+  ArrowRight, BookOpen, ChevronDown, ExternalLink
 } from 'lucide-react';
 import { EnvironmentalContextData } from '../../lib/sse';
 
@@ -31,23 +31,19 @@ interface Props {
 
 const EXAMPLE_PROMPTS = [
   {
-    icon: '🌾',
-    label: 'Soil Organic Carbon',
+    label: 'Soil carbon & biodiversity',
     text: 'My wheat field in a semi-arid region has declining biodiversity. SOC is 0.3%, annual rainfall is around 350mm, and I use intensive tillage. What should I change first?',
   },
   {
-    icon: '💧',
-    label: 'Moisture Retention',
+    label: 'Moisture retention & cover crops',
     text: 'How can cover cropping and reduced tillage enhance volumetric soil moisture and microbial biomass in degraded dryland soils?',
   },
   {
-    icon: '🐝',
-    label: 'Biodiversity Corridors',
+    label: 'Pollinator & habitat restoration',
     text: 'What agroforestry species and native flowering buffers best restore pollinator populations and species richness on degraded farmland?',
   },
   {
-    icon: '🧪',
-    label: 'pH & Nutrient Cycling',
+    label: 'pH, mycorrhizae & nutrient cycling',
     text: 'What is the relationship between alkaline soil pH (7.8), mycorrhizal fungal networks, and organic matter decomposition?',
   },
 ];
@@ -105,46 +101,32 @@ export const ChatPanel: React.FC<Props> = ({
           // Welcome Hero State
           <div className="max-w-4xl mx-auto px-4 md:px-8 py-12 space-y-10 animate-fadeIn">
             <div className="text-center space-y-3">
-              <div className="w-14 h-14 rounded-2xl bg-[var(--color-surface)] border border-emerald-500/20 shadow-[0_0_25px_rgba(16,185,129,0.15)] flex items-center justify-center mx-auto">
-                <Leaf className="w-7 h-7 text-[var(--color-accent-light)]" />
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>AI Environmental Scientist</span>
-              </div>
-              <h2 className="text-3xl font-extrabold text-[var(--color-text-primary)] tracking-tight">
-                Hello! I am Prakriti
+              <h2 className="text-3xl font-bold text-[var(--color-text-primary)] tracking-tight">
+                Prakriti
               </h2>
               <p className="text-sm text-[var(--color-text-secondary)] max-w-lg mx-auto leading-relaxed">
-                Evidence-grounded scientific diagnostics, soil carbon restoration, agroforestry design, and biodiversity intelligence backed by peer-reviewed literature.
+                Research assistant for soil, biodiversity, water, land degradation, restoration,
+                agriculture, and climate — grounded in peer-reviewed literature.
               </p>
             </div>
 
             <div className="space-y-3">
               <p className="text-xs font-mono font-semibold text-[var(--color-text-muted)] uppercase tracking-wider text-center">
-                Explore Scientific Diagnostics
+                Research prompts
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {EXAMPLE_PROMPTS.map((p, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => setInputText(p.text)}
-                    className="text-left p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-emerald-500/30 hover:bg-[var(--color-surface-2)] transition-all group cursor-pointer shadow-sm hover:shadow-[0_4px_20px_rgba(0,0,0,0.2)]"
+                    className="text-left px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-surface-2)] transition-all group cursor-pointer"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-base">{p.icon}</span>
-                          <span className="text-xs font-bold text-[var(--color-accent-light)] font-mono">
-                            {p.label}
-                          </span>
-                        </div>
-                        <p className="text-xs text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition line-clamp-2 leading-relaxed">
-                          {p.text}
-                        </p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 flex-shrink-0 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent-light)] group-hover:translate-x-0.5 transition-all mt-1" />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition">
+                        {p.label}
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 flex-shrink-0 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent-light)] group-hover:translate-x-0.5 transition-all" />
                     </div>
                   </button>
                 ))}
@@ -221,9 +203,8 @@ export const ChatPanel: React.FC<Props> = ({
                               {processedContent}
                             </ReactMarkdown>
                           ) : msg.isStreaming ? (
-                            <span className="text-[var(--color-text-muted)] text-sm flex items-center gap-2">
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--color-accent-light)]" />
-                              Analyzing scientific knowledge base…
+                            <span className="text-[var(--color-text-muted)] text-sm">
+                              Retrieving evidence…
                             </span>
                           ) : null}
                         </div>
@@ -235,10 +216,10 @@ export const ChatPanel: React.FC<Props> = ({
                               <button
                                 type="button"
                                 onClick={() => toggleSourceAccordion(msg.id)}
-                                className="flex items-center gap-2 text-xs font-mono font-medium text-[var(--color-text-secondary)] hover:text-emerald-400 transition cursor-pointer"
+                                className="flex items-center gap-2 text-xs font-mono font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-accent-light)] transition cursor-pointer"
                               >
-                                <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>Grounding Sources ({msg.sources.length})</span>
+                                <BookOpen className="w-3.5 h-3.5 text-[var(--color-accent-light)]" />
+                                <span>Evidence ({msg.sources.length})</span>
                                 {msg.quality && (
                                   <span
                                     className={`px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono ${
@@ -366,7 +347,7 @@ export const ChatPanel: React.FC<Props> = ({
       <div className="p-4 md:p-6 border-t border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-md flex-shrink-0">
         <div className="max-w-4xl mx-auto">
           <form onSubmit={handleSubmit} className="relative">
-            <div className="relative flex items-center bg-[var(--color-surface)] border border-[var(--color-border)] focus-within:border-emerald-500/50 focus-within:shadow-[0_0_20px_rgba(16,185,129,0.15)] rounded-2xl transition-all">
+            <div className="relative flex items-center bg-[var(--color-surface)] border border-[var(--color-border)] focus-within:border-[var(--color-accent-light)] rounded-2xl transition-all">
               <textarea
                 ref={textareaRef}
                 value={inputText}
@@ -397,7 +378,7 @@ export const ChatPanel: React.FC<Props> = ({
                   <button
                     type="submit"
                     disabled={!inputText.trim()}
-                    className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:hover:bg-emerald-600 text-white transition shadow-sm cursor-pointer disabled:cursor-not-allowed"
+                    className="p-2 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-light)] disabled:opacity-30 text-white transition shadow-sm cursor-pointer disabled:cursor-not-allowed"
                     title="Send query"
                   >
                     <Send className="w-4 h-4" />

@@ -10,7 +10,9 @@ from backend.src.api.auth import AuthUser
 from backend.src.retriever.hybrid_search import search_hybrid_evidence
 from backend.src.intelligence.completeness import (
     check_environmental_completeness,
-    is_out_of_scope_query
+    is_out_of_scope_query,
+    classify_conversational_intent,
+    get_conversational_reply,
 )
 from backend.src.intelligence.evidence_gate import (
     build_evidence_manifest,
@@ -68,6 +70,32 @@ async def generate_query_sse_stream(
             yield sse_event("status", {"stage": "auth", "request_id": req_id})
             t_auth = time.perf_counter()
             auth_ms = (t_auth - t0) * 1000.0
+
+            # Stage 2.5: Conversational Fast Path (zero-LLM, zero-retrieval)
+            # Pure greetings, thanks, farewells, identity, help → canned reply instantly.
+            # Mixed queries (greeting + environmental topic) fall through to scientific pipeline.
+            conv_intent = classify_conversational_intent(query_req.question)
+            if conv_intent and conv_intent != "mixed":
+                reply_text = get_conversational_reply(conv_intent)
+                yield sse_event("evidence", {"sources": [], "quality": {
+                    "status": "Insufficient", "reasons": [], "sources_count": 0,
+                    "independent_orgs": [], "has_primary_evidence": False
+                }})
+                for char in reply_text:
+                    yield sse_event("token", {"text": char})
+                total_ms = (time.perf_counter() - t0) * 1000.0
+                yield sse_event("done", {
+                    "request_id": req_id,
+                    "is_conversational": True,
+                    "intent": conv_intent,
+                    "metrics": {
+                        "auth_ms": round(auth_ms, 2),
+                        "completeness_ms": 0.0,
+                        "retrieval_ms": 0.0,
+                        "total_ms": round(total_ms, 2)
+                    }
+                })
+                return
 
             # Stage 2: Completeness & Scope Check
             with trace_span(

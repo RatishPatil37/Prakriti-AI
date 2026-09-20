@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ChatPanel } from '../chat/ChatPanel';
 import { ConversationSidebar } from './ConversationSidebar';
 import { EvidencePanel } from '../evidence/EvidencePanel';
@@ -6,7 +6,8 @@ import { EnvironmentalContextModal } from '../chat/EnvironmentalContextModal';
 import { DocumentManager } from '../uploads/DocumentManager';
 import { EnvironmentalContextData } from '../../lib/sse';
 import { Conversation } from '../../lib/conversations';
-import { Menu, BookOpen, Leaf, RefreshCw } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
+import { Menu, BookOpen, RefreshCw, Sun, Moon } from 'lucide-react';
 
 interface Props {
   messages: any[];
@@ -54,8 +55,17 @@ export const Shell: React.FC<Props> = ({
   const [contextModalOpen, setContextModalOpen] = useState(false);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  // Sources panel: user-toggleable on demand (inline sources render under messages)
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const { theme, toggle: toggleTheme } = useTheme();
+
+  const STAGE_LABELS: Record<string, string> = {
+    auth: 'Connecting…',
+    thinking: 'Reading query…',
+    retrieval: 'Searching corpus…',
+    generation: 'Generating…',
+    default: 'Working…',
+  };
+  const stageLabel = streamingStage ? (STAGE_LABELS[streamingStage] ?? STAGE_LABELS.default) : '';
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
 
@@ -91,33 +101,46 @@ export const Shell: React.FC<Props> = ({
 
             {/* Conversation title */}
             <span className="text-sm font-medium text-[var(--color-text-primary)] truncate max-w-sm">
-              {activeConversation?.title || 'Prakriti AI'}
+              {activeConversation?.title || 'Prakriti'}
             </span>
 
-            {/* Thinking indicator */}
+            {/* Streaming stage pill */}
             {isStreaming && streamingStage && (
-              <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)]">
+              <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] font-mono">
                 <RefreshCw className="w-3 h-3 animate-spin text-[var(--color-accent-light)]" />
-                <span>Thinking…</span>
+                <span>{stageLabel}</span>
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* BookOpen button — always visible on top right to toggle Sources panel */}
+          <div className="flex items-center gap-1.5">
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border border-[var(--color-border)] transition cursor-pointer"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark'
+                ? <Sun className="w-4 h-4" />
+                : <Moon className="w-4 h-4" />
+              }
+            </button>
+
+            {/* Sources panel toggle */}
             <button
               onClick={() => setSourcesOpen(v => !v)}
               title={sourcesOpen ? 'Hide sources' : 'Show sources'}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border ${
                 sourcesOpen
-                  ? 'bg-[var(--color-surface-2)] text-[var(--color-accent-light)] border border-[var(--color-border)]'
-                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border border-[var(--color-border)]'
+                  ? 'bg-[var(--color-surface-2)] text-[var(--color-accent-light)] border-[var(--color-border-hover)]'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border-[var(--color-border)]'
               }`}
             >
               <BookOpen className="w-4 h-4 text-[var(--color-accent-light)]" />
-              <span>Sources</span>
+              <span className="hidden sm:inline">Sources</span>
               {evidenceList.length > 0 && (
-                <span className="bg-[var(--color-accent)]/20 text-[var(--color-accent-light)] px-1.5 py-0.5 rounded-full text-[10px] font-semibold">
+                <span className="bg-[var(--color-accent-subtle)] text-[var(--color-accent-light)] px-1.5 py-0.5 rounded-full text-[10px] font-semibold font-mono">
                   {evidenceList.length}
                 </span>
               )}

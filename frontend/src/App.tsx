@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './lib/auth';
+import { ThemeProvider } from './context/ThemeContext';
 import { LandingPage } from './pages/LandingPage';
 import { AuthModal } from './components/auth/AuthModal';
 import { Shell } from './components/layout/Shell';
@@ -303,9 +304,11 @@ const AppRouter: React.FC = () => {
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 export const App: React.FC = () => (
-  <AuthProvider>
-    <AppRouter />
-  </AuthProvider>
+  <ThemeProvider>
+    <AuthProvider>
+      <AppRouter />
+    </AuthProvider>
+  </ThemeProvider>
 );
 
 export default App;

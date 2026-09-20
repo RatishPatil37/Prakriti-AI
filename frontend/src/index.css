@@ -3,28 +3,51 @@
 @tailwind utilities;
 
 /* ─── Google Fonts ─────────────────────────────────────────────────────────── */
-/* Loaded via index.html */
+/* IBM Plex Serif · Inter · Plus Jakarta Sans · JetBrains Mono — loaded via index.html */
 
+/* ─── DARK THEME (default) ──────────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* Obsidian Botanical Design Tokens */
-    --color-bg: #0A0E13;
-    --color-surface: #121820;
-    --color-surface-2: #18222C;
-    --color-border: rgba(255, 255, 255, 0.08);
-    --color-border-hover: rgba(52, 211, 153, 0.25);
-    --color-text-primary: #F8FAFC;
-    --color-text-secondary: #94A3B8;
-    --color-text-muted: #64748B;
-    --color-accent: #059669;
-    --color-accent-light: #10B981;
-    --color-accent-subtle: rgba(16, 185, 129, 0.12);
-    --color-accent-subtle-hover: rgba(16, 185, 129, 0.22);
+    /* Obsidian Botanical — warmed, neon removed */
+    --color-bg:                #0A0E13;
+    --color-surface:           #111820;
+    --color-surface-2:         #18222C;
+    --color-border:            rgba(255, 255, 255, 0.08);
+    --color-border-hover:      rgba(46, 125, 82, 0.35);
+    --color-text-primary:      #F0EDE8;
+    --color-text-secondary:    #8A9BB0;
+    --color-text-muted:        #546070;
+    --color-accent:            #1F5C3A;
+    --color-accent-light:      #2E7D52;
+    --color-accent-subtle:     rgba(31, 92, 58, 0.14);
+    --color-accent-subtle-hover: rgba(31, 92, 58, 0.24);
+
+    /* Scrollbar */
+    --sb-thumb: rgba(255, 255, 255, 0.10);
+    --sb-thumb-hover: rgba(255, 255, 255, 0.18);
   }
 
-  * {
-    box-sizing: border-box;
+  /* ─── LIGHT THEME ─────────────────────────────────────────────────────────── */
+  [data-theme="light"] {
+    --color-bg:                #F7F5F1;
+    --color-surface:           #FFFFFF;
+    --color-surface-2:         #F0EDE8;
+    --color-border:            #E4E0D8;
+    --color-border-hover:      #1F5C3A;
+    --color-text-primary:      #1A1A18;
+    --color-text-secondary:    #5A5A52;
+    --color-text-muted:        #9A9A92;
+    --color-accent:            #1F5C3A;
+    --color-accent-light:      #2E7D52;
+    --color-accent-subtle:     rgba(31, 92, 58, 0.08);
+    --color-accent-subtle-hover: rgba(31, 92, 58, 0.16);
+
+    /* Scrollbar */
+    --sb-thumb: rgba(0, 0, 0, 0.14);
+    --sb-thumb-hover: rgba(0, 0, 0, 0.22);
   }
+
+  * { box-sizing: border-box; }
 
   html {
     scroll-behavior: smooth;
@@ -39,6 +62,7 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   h1, h2, h3, h4 {
@@ -52,8 +76,19 @@
 /* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+::-webkit-scrollbar-thumb { background: var(--sb-thumb); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sb-thumb-hover); }
+
+/* ─── Theme transition ───────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.15s;
+  transition-timing-function: ease;
+}
+
+/* Opt-out for elements where transition looks wrong */
+.no-theme-transition,
+.no-theme-transition * { transition: none !important; }
 
 /* ─── Typing cursor for streaming ───────────────────────────────────────────── */
 .typing-cursor::after {
@@ -70,7 +105,7 @@
   50% { opacity: 0; }
 }
 
-/* ─── Fade in animation ─────────────────────────────────────────────────────── */
+/* ─── Animations ─────────────────────────────────────────────────────────────── */
 .animate-fadeIn {
   animation: fadeIn 0.25s ease-out both;
 }
@@ -89,12 +124,15 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── Glass surface ─────────────────────────────────────────────────────────── */
-.glass {
-  background: rgba(17, 31, 25, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--color-border);
+/* ─── Editorial section labels (WORKSPACE, EVIDENCE, RESEARCH) ──────────────── */
+/* Use IBM Plex Serif for a research-publication feel */
+.section-label {
+  font-family: 'IBM Plex Serif', Georgia, serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }
 
 /* ─── Prose (markdown) ──────────────────────────────────────────────────────── */
@@ -105,7 +143,7 @@
 }
 
 .prose-chat h1, .prose-chat h2, .prose-chat h3 {
-  color: #F0EDE8;
+  color: var(--color-text-primary);
   font-family: 'Inter', sans-serif;
   font-weight: 700;
   margin-top: 1.25rem;
@@ -121,28 +159,27 @@
 .prose-chat ul, .prose-chat ol {
   padding-left: 1.25rem;
   margin: 0.5rem 0;
-  space-y: 0.25rem;
 }
 
 .prose-chat ul { list-style-type: disc; }
 .prose-chat ol { list-style-type: decimal; }
 .prose-chat li { margin: 0.2rem 0; }
 
-.prose-chat strong { color: #F0EDE8; font-weight: 600; }
+.prose-chat strong { color: var(--color-text-primary); font-weight: 600; }
 .prose-chat em { color: var(--color-text-secondary); font-style: italic; }
 
 .prose-chat code {
-  background: rgba(78,136,98,0.12);
+  background: var(--color-accent-subtle);
   color: var(--color-accent-light);
   padding: 0.15em 0.4em;
   border-radius: 4px;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.82em;
-  border: 1px solid rgba(78,136,98,0.2);
+  border: 1px solid var(--color-accent-subtle-hover);
 }
 
 .prose-chat pre {
-  background: rgba(0,0,0,0.35);
+  background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 1rem;
@@ -155,7 +192,7 @@
   border: none;
   padding: 0;
   font-size: 0.83rem;
-  color: #CBD5E1;
+  color: var(--color-text-secondary);
 }
 
 .prose-chat blockquote {
@@ -192,7 +229,7 @@
 }
 
 .prose-chat tr:nth-child(even) td {
-  background: rgba(255,255,255,0.02);
+  background: var(--color-surface-2);
 }
 
 /* ─── Citation badge ────────────────────────────────────────────────────────── */
@@ -206,7 +243,7 @@
   font-weight: 600;
   border-radius: 4px;
   background: var(--color-accent-subtle);
-  border: 1px solid rgba(78,136,98,0.3);
+  border: 1px solid var(--color-accent-subtle-hover);
   color: var(--color-accent-light);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -215,7 +252,7 @@
 
 .citation-badge:hover {
   background: var(--color-accent-subtle-hover);
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-light);
 }
 
 /* ─── Landing page ──────────────────────────────────────────────────────────── */
@@ -227,7 +264,7 @@
 }
 
 .landing-nav.scrolled {
-  background: rgba(11, 21, 18, 0.92);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--color-border);
 }
@@ -255,7 +292,7 @@
   }
 }
 
-/* ─── Input focus ring ──────────────────────────────────────────────────────── */
+/* ─── Input field ───────────────────────────────────────────────────────────── */
 .input-field {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -265,16 +302,14 @@
   font-size: 0.875rem;
   width: 100%;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
-.input-field::placeholder {
-  color: var(--color-text-muted);
-}
+.input-field::placeholder { color: var(--color-text-muted); }
 
 .input-field:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(78,136,98,0.12);
+  border-color: var(--color-accent-light);
+  box-shadow: 0 0 0 2px var(--color-accent-subtle);
 }
 
 /* ─── Buttons ───────────────────────────────────────────────────────────────── */
@@ -313,7 +348,7 @@
 }
 
 .btn-ghost:hover {
-  background: rgba(255,255,255,0.05);
+  background: var(--color-surface-2);
   color: var(--color-text-primary);
   border-color: var(--color-border-hover);
 }

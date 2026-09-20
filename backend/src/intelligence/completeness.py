@@ -27,7 +27,7 @@ OUT_OF_SCOPE_PATTERNS = [
     r"^\s*(\d+\s*[\+\-\*\/\^xX%]\s*\d+)",
     r"^\s*whats?\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(multiplied|divided|plus|minus|times)",
     r"\b(calculate|compute|solve)\s+(the\s+)?(equation|derivative|integral|\d+)",
-    # Political, geography & general trivia (capitals, leaders, populations)
+    # Political, geography & general trivia
     r"\bcapital\s+of\s+[A-Za-z]+",
     r"\b(president|prime\s+minister|king|queen|governor|ceo|founder)\s+of\b",
     r"\bwho\s+is\s+(the\s+)?(president|prime\s+minister|ceo|founder|actor|actress|singer|celebrity)\b",
@@ -39,38 +39,139 @@ OUT_OF_SCOPE_PATTERNS = [
     r"\b(binary\s+search|linked\s+list|regex|bubble\s+sort|quicksort|merge\s+sort)\b",
     # Entertainment, media, sports
     r"\b(movie|film|song|album|lyrics|netflix|hollywood|bollywood|taylor\s+swift|messi|ronaldo)\b",
-    # Clinical human medicine (not environmental toxicology)
+    # Clinical human medicine
     r"\b(symptoms\s+of\s+(covid|flu|cancer|diabetes|headache|fever)|cure\s+for\s+(covid|headache|fever)|dosage\s+of\s+\w+)\b",
     # Financial markets / crypto
     r"\b(buy|sell)\s+(bitcoin|crypto|stocks|shares|ethereum)\b",
     r"\bstock\s+price\s+of\b",
-    # Small talk / greetings / persona questions
-    r"^\s*(hello|hi|hey|greetings|howdy|good\s+(morning|afternoon|evening|day)|sup|yo)\b",
-    r"^\s*(how\s+are\s+you|who\s+are\s+you|what\s+is\s+your\s+name|what\s+can\s+you\s+do|whats\s+up|what's\s+up)\b",
-    r"^\s*(tell\s+me\s+a\s+joke|who\s+made\s+you|who\s+created\s+you|are\s+you\s+sentient|what\s+is\s+your\s+favorite\s+color)\s*\??$"
+    # Weather forecast (not climate science)
+    r"\bweather\s+(today|tomorrow|this\s+week|forecast)\b",
+    r"\bwhat.s\s+the\s+weather\b",
+    # Small talk / greetings — pure (matched as standalone, no env keyword mixed in)
+    r"^\s*(hello|hi|hey|greetings|howdy|good\s+(morning|afternoon|evening|day|night)|sup|yo|hey\s+there|hi\s+there)\s*[.!?]?\s*$",
+    r"^\s*(how\s+are\s+you|who\s+are\s+you|what\s+is\s+your\s+name|what\s+can\s+you\s+do|whats\s+up|what's\s+up)\s*[.!?]?\s*$",
+    r"^\s*(tell\s+me\s+a\s+joke|who\s+made\s+you|who\s+created\s+you|are\s+you\s+sentient|what\s+is\s+your\s+favorite\s+color)\s*\??\s*$",
+    r"^\s*(thanks|thank\s+you|thx|thanks\s+a\s+lot|ty)\s*[.!?]?\s*$",
+    r"^\s*(okay|ok|got\s+it|understood|cool|nice|alright|sure)\s*[.!?]?\s*$",
+    r"^\s*(bye|goodbye|see\s+you|later|cya|farewell)\s*[.!?]?\s*$",
+    r"^\s*help\s*[.!?]?\s*$",
 ]
 
 ENVIRONMENTAL_KEYWORDS = [
     "soil", "carbon", "soc", "biodiversity", "ph", "rainfall", "tillage", "crop",
     "species", "forest", "ecosystem", "water", "agroforestry", "climate", "nitrogen",
     "fallowing", "cover crop", "pollinator", "land", "pasture", "degradation", "restoration",
-    "moisture", "habitat", "pollution", "deforestation", "mycorrhiz", "canopy", "tilling"
+    "moisture", "habitat", "pollution", "deforestation", "mycorrhiz", "canopy", "tilling",
+    "ecology", "ecological", "vegetation", "wetland", "watershed", "erosion", "organic matter",
+    "biomass", "drought", "irrigation", "agriculture", "farming", "trees", "marine",
+    "coral", "mangrove", "peatland", "savanna",
 ]
+
+# ─── Conversational Intent Classifier ────────────────────────────────────────
+
+_GREETING_RE = re.compile(
+    r"^(hello|hi|hey|greetings|howdy|sup|yo|good\s+(morning|afternoon|evening|day|night)|hey\s+there|hi\s+there|hello\s+there)\s*[.!?]?$",
+    re.IGNORECASE
+)
+_THANKS_RE = re.compile(
+    r"^(thanks|thank\s+you|thx|thanks\s+a\s+lot|ty|many\s+thanks)\s*[.!?]?$",
+    re.IGNORECASE
+)
+_ACK_RE = re.compile(
+    r"^(okay|ok|got\s+it|understood|cool|nice|alright|sure|great|noted|sounds\s+good)\s*[.!?]?$",
+    re.IGNORECASE
+)
+_FAREWELL_RE = re.compile(
+    r"^(bye|goodbye|see\s+you|later|cya|farewell|take\s+care)\s*[.!?]?$",
+    re.IGNORECASE
+)
+_IDENTITY_RE = re.compile(
+    r"^(who\s+are\s+you|what\s+are\s+you|what\s+can\s+you\s+do|what\s+is\s+your\s+name|who\s+made\s+you|who\s+created\s+you|what\s+do\s+you\s+do)\s*[.!?]?$",
+    re.IGNORECASE
+)
+_HELP_RE = re.compile(r"^help\s*[.!?]?$", re.IGNORECASE)
+
+# Greeting prefix that might precede a real scientific question
+_GREETING_PREFIX_RE = re.compile(
+    r"^(hello|hi|hey|howdy|greetings|good\s+(morning|afternoon|evening|day))[,\s!]+",
+    re.IGNORECASE
+)
+
+_CANNED_REPLIES = {
+    "greeting":       "Hi. What are you researching?",
+    "thanks":         "You're welcome.",
+    "acknowledgement":"Got it.",
+    "farewell":       "Take care.",
+    "identity": (
+        "I'm Prakriti, a research assistant for environmental and ecological questions. "
+        "I can help investigate soil health, biodiversity, water, restoration, agriculture, "
+        "and climate using available scientific sources."
+    ),
+    "help": (
+        "Ask me about an environmental problem, ecosystem, soil condition, biodiversity change, "
+        "or restoration decision. Location and environmental context help when you have them."
+    ),
+}
+
+
+def classify_conversational_intent(question: str) -> Optional[str]:
+    """
+    Deterministically classifies pure-conversational inputs.
+
+    Returns one of: "greeting", "thanks", "acknowledgement", "farewell",
+    "identity", "help", "mixed", or None.
+
+    "mixed" = greeting + environmental topic → scientific pipeline handles it.
+    None = not conversational, proceed normally.
+    """
+    q = question.strip()
+    q_lower = q.lower()
+
+    has_env = any(re.search(rf"\b{re.escape(kw)}", q_lower) for kw in ENVIRONMENTAL_KEYWORDS)
+
+    if _GREETING_RE.match(q):
+        return "mixed" if has_env else "greeting"
+    if _THANKS_RE.match(q):
+        return "thanks"
+    if _ACK_RE.match(q):
+        return "acknowledgement"
+    if _FAREWELL_RE.match(q):
+        return "farewell"
+    if _IDENTITY_RE.match(q):
+        return "identity"
+    if _HELP_RE.match(q):
+        return "help"
+
+    # Greeting prefix followed by actual environmental content → mixed
+    if _GREETING_PREFIX_RE.match(q) and has_env:
+        return "mixed"
+
+    return None
+
+
+def get_conversational_reply(intent: str) -> str:
+    """Returns a short, natural canned reply for the given conversational intent."""
+    return _CANNED_REPLIES.get(intent, "")
+
 
 def is_out_of_scope_query(question: str) -> bool:
     """
     Returns True if the query is unambiguously outside the environmental & ecological science domain.
     """
     q_lower = question.lower().strip()
-    has_environmental_topic = any(re.search(rf"\b{kw}", q_lower) for kw in ENVIRONMENTAL_KEYWORDS)
+    has_environmental_topic = any(re.search(rf"\b{re.escape(kw)}", q_lower) for kw in ENVIRONMENTAL_KEYWORDS)
 
     for pattern in OUT_OF_SCOPE_PATTERNS:
-        if re.search(pattern, q_lower):
+        if re.search(pattern, q_lower, re.IGNORECASE):
             # If greeting/smalltalk pattern but user explicitly asked an environmental question, keep in scope
-            if has_environmental_topic and re.search(r"^\s*(hello|hi|hey|greetings|howdy|good\s+(morning|afternoon|evening|day))\b", q_lower):
+            if has_environmental_topic and re.search(
+                r"^(hello|hi|hey|greetings|howdy|good\s+(morning|afternoon|evening|day))",
+                q_lower, re.IGNORECASE
+            ):
                 continue
             return True
     return False
+
 
 def is_intervention_query(question: str) -> bool:
     q_lower = question.lower().strip()
@@ -85,6 +186,7 @@ def is_intervention_query(question: str) -> bool:
         if re.search(ip, q_lower):
             return True
     return False
+
 
 def check_environmental_completeness(
     question: str,
