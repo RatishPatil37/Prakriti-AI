@@ -2,8 +2,9 @@ name: Render Backend Keep-Alive Cron
 
 on:
   schedule:
-    # Runs every 10 minutes from 08:00 to 23:00 IST (02:30 to 17:30 UTC)
-    - cron: '*/10 2-17 * * *'
+    # Runs every 10 minutes from 08:00 AM to 01:00 AM IST (02:00 to 19:50 UTC)
+    # Active 17–18 hours daily (~552 hours/month), staying well under Render's 750 free hours/month limit
+    - cron: '*/10 2-19 * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:

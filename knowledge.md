@@ -38,7 +38,7 @@ The following table summarizes the major problem statements, requested enhanceme
 | **Milestone 8: Observability & Tracing** | Production-level visibility into TTFT, token usage, guardrail refusals, and step-by-step latency. | Installed and configured the **Langfuse AI Observability Suite** (`tracer.py`), creating root traces and spans for guardrails, retrieval, generation, and citation evaluation with asynchronous non-blocking flush. |
 | **Milestone 9: CI/CD & Cloud Availability** | Automated testing on push/PR and preventing Render free-tier instances from falling asleep. | Created GitHub Actions workflows: `.github/workflows/ci.yml` (frontend TypeScript + backend pytest) and `.github/workflows/keep_alive.yml` (10-minute automated health-check cron). |
 | **Milestone 10: Post-Stream Citation Pruning & Evidence Truth** | Stop displaying uncited retrieval candidates in the Evidence Rail and eliminate false confidence ratings in the Evidence Gate. | Fixed `evidence_gate.py` by removing the `or len(item.text) > 100` false-positive trigger. Implemented `filter_cited_evidence()` in `stream.py`: post-stream regex audit cross-references markdown tokens (`[SX]`) against retrieved chunks, purges uncited candidates (`retrieved S1..S3 + cited S1 → UI displays ONLY S1`), and guarantees `sources: []` for refusals and conversational pleasantries. |
-| **Milestone 11: Production Keep-Alive & Lifespan Pre-Warming** | Prevent Render cold-start delays and eliminate the 12–15s Query 1 FastEmbed model spin-up delay. | Updated `.github/workflows/keep_alive.yml` with live Render URL `https://prakriti-ai-jgsn.onrender.com/health` (10-min cron, <2ms response time). Pre-warmed FastEmbed dense ONNX and sparse BM25 models in FastAPI `lifespan` on startup, cutting initial query latency to sub-second. |
+| **Milestone 11: Production Keep-Alive & Lifespan Pre-Warming** | Prevent Render cold-start delays and eliminate the 12–15s Query 1 FastEmbed model spin-up delay while satisfying Render's 750 free hours limit. | Updated `.github/workflows/keep_alive.yml` with live Render URL `https://prakriti-ai-jgsn.onrender.com/health` (10-min cron, 08:00 AM to 01:00 AM IST, 17 hours/day = ~552 hrs/mo < 750h limit, <2ms response time). Pre-warmed FastEmbed dense ONNX and sparse BM25 models in FastAPI `lifespan` on startup, cutting initial query latency to sub-second. |
 | **Milestone 12: $1M+ Scientific Workstation UI Overhaul** | Build a high-density, authoritative workstation free of generic AI slop with keyboard navigation, guided onboarding, and publication-ready outputs. | Built Claude-style conditional Q&A questionnaire (`ClarificationQuestionnaire.tsx`), 4-step spotlight walkthrough tour (`OnboardingTour.tsx`), global command palette (`CommandPalette.tsx`, `Cmd+K`), Nature-style citation hover cards (`CitationHoverCard.tsx`), living site profile HUD (`Shell.tsx`), executive printable dossier export (`DossierExportModal.tsx`), resizable Gemini-style sidebar (`ConversationSidebar.tsx`), and landing page typewriter & scroll animations. |
 
 ---
@@ -233,7 +233,7 @@ async def lifespan(app: FastAPI):
 graph LR
     Vercel["Frontend: Vercel CDN<br/>(Edge Hosted, Global Anycast)"]
     Render["Backend: Render Web Service<br/>(FastAPI on Linux Container)"]
-    Cron["GitHub Actions Cron<br/>(Every 10 mins 08:00-23:00 IST)"]
+    Cron["GitHub Actions Cron<br/>(Every 10 mins 08:00-01:00 IST)"]
     
     Vercel -->|HTTPS API Requests| Render
     Cron -->|Pings /health Endpoint| Render
@@ -245,7 +245,7 @@ graph LR
 2. **Backend on Render**: Full Python 3.11 container environment with ONNX runtime support and native C-extensions for FastEmbed and PyMuPDF.
 3. **The Free-Tier Problem & The GitHub Actions Solution**:
    * *Problem*: Render free-tier instances spin down after 15 minutes of inactivity, resulting in a 30–50 second cold start on the next user visit.
-   * *Solution*: A dedicated GitHub Actions workflow ([`keep_alive.yml`](file:///c:/Users/patil/OneDrive/Prakriti%20AI/.github/workflows/keep_alive.yml)) runs every 10 minutes during active working hours (08:00 to 23:00 IST), pinging the `/health` endpoint to keep the container warm and responsive with zero cold starts (<2ms response, compatible with cron-job.org).
+   * *Solution*: A dedicated GitHub Actions workflow ([`keep_alive.yml`](file:///c:/Users/patil/OneDrive/Prakriti%20AI/.github/workflows/keep_alive.yml)) runs every 10 minutes between 08:00 AM and 01:00 AM IST (17 hours daily = ~552 hours/month, leaving ~198 free hours buffer under Render's 750 free hours/month limit), pinging the `/health` endpoint to keep the container warm and responsive (<2ms response, compatible with external cron monitors like cron-job.org).
 
 ---
 

@@ -320,7 +320,7 @@ Configured in [`tracer.py`](backend/src/intelligence/tracer.py) via a centralize
 ### 4.5 Sub-Second Latency, FastEmbed Warmup & Keep-Alive Cron
 
 * **FastAPI Lifespan Warmup**: During container boot, FastAPI executes warmup embedding inferences (`compute_dense_embedding("warmup")` and `compute_sparse_embedding("warmup")`), loading ONNX runtimes and BM25 tokenizers into memory. This eliminates the **12–15 second cold-start lag** on the first user query.
-* **Automated Keep-Alive Cron**: A scheduled GitHub Actions workflow ([`keep_alive.yml`](.github/workflows/keep_alive.yml)) pings the live Render endpoint (`https://prakriti-ai-jgsn.onrender.com/health`) every 10 minutes between 08:00 and 23:00 IST (<2ms response time), preventing container sleep on free tiers (compatible with external cron monitors like cron-job.org).
+* **Automated Keep-Alive Cron**: A scheduled GitHub Actions workflow ([`keep_alive.yml`](.github/workflows/keep_alive.yml)) pings the live Render endpoint (`https://prakriti-ai-jgsn.onrender.com/health`) every 10 minutes between 08:00 AM and 01:00 AM IST (17 hours daily, ~552 hours/month, <2ms response time), preventing container sleep while remaining comfortably under Render's 750 free hours/month limit (compatible with external cron monitors like cron-job.org).
 * **Client Disconnect Cancellation**: Actively monitors `request.is_disconnected()` on every yielded token, immediately halting upstream LLM streaming if a user navigates away
 
 ## 5. Repository File Structure
