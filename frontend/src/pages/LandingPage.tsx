@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  Leaf, ArrowRight, ChevronRight, ShieldCheck, BookOpen, Sprout,
+  Leaf, ArrowRight, ChevronRight, ChevronDown, ShieldCheck, BookOpen, Sprout,
   Sun, Moon, Database, CheckCircle2, Layers, Cpu, Compass, FileText,
-  ExternalLink
+  ExternalLink, HelpCircle
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -26,6 +26,9 @@ export const LandingPage: React.FC<Props> = ({ onGetStarted }) => {
   const [domainIndex, setDomainIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // FAQ accordion state
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // Scroll observer for reveal animations
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -156,6 +159,29 @@ export const LandingPage: React.FC<Props> = ({ onGetStarted }) => {
       num: '03',
       title: 'Verified Ecological Guidance',
       desc: 'Receive clear, deterministic recommendations with inline citations [S1] linking directly to DOI-registered scientific literature.',
+    },
+  ];
+
+  const faqs = [
+    {
+      q: 'What is Prakriti AI?',
+      a: 'Prakriti AI is an evidence-grounded environmental research intelligence platform designed to assist agronomists, ecologists, farmers, and researchers with verifiable scientific answers regarding soil health, biodiversity, carbon sequestration, and ecological restoration.',
+    },
+    {
+      q: 'How does Prakriti AI ensure scientific grounding without hallucinations?',
+      a: 'Prakriti AI uses a multi-stage hybrid retrieval architecture combining dense semantic vectors with sparse BM25 token frequencies via Reciprocal Rank Fusion (RRF). All model responses are verified against an immutable evidence manifest, and uncited search results or out-of-scope queries are strictly filtered out.',
+    },
+    {
+      q: 'Can I upload my own soil test reports or farm surveys?',
+      a: 'Yes. Authenticated users can upload private PDF, TXT, or MD documents (up to 25MB). These documents are partitioned inside an isolated vector tenant that is never shared with or exposed to any other users.',
+    },
+    {
+      q: 'Which scientific organizations ground Prakriti AI\'s citations?',
+      a: 'Prakriti AI grounds responses in peer-reviewed scientific reports and assessments from authoritative bodies including the IPCC, IPBES, FAO, IUCN, and international agroecological research bodies.',
+    },
+    {
+      q: 'How does the hybrid search mechanism work?',
+      a: 'When you ask a question, Prakriti generates both high-dimensional dense embeddings (capturing semantic intent) and BM25 sparse vectors (capturing exact scientific terms and Latin species names). Qdrant performs Reciprocal Rank Fusion to rank and select the highest-quality candidate evidence.',
     },
   ];
 
@@ -317,7 +343,7 @@ export const LandingPage: React.FC<Props> = ({ onGetStarted }) => {
       </section>
 
       {/* Core Ecological Domains */}
-      <section className="px-6 md:px-12 py-20 max-w-6xl mx-auto border-t border-[var(--color-border)]">
+      <section id="domains" className="px-6 md:px-12 py-20 max-w-6xl mx-auto border-t border-[var(--color-border)]">
         <div className="text-center mb-16 space-y-3 scroll-reveal">
           <span className="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-widest">
             Scope of Analysis
@@ -355,7 +381,7 @@ export const LandingPage: React.FC<Props> = ({ onGetStarted }) => {
       </section>
 
       {/* How it Works: 3-Step Methodology */}
-      <section className="px-6 md:px-12 py-24 max-w-5xl mx-auto border-t border-[var(--color-border)]">
+      <section id="workflow" className="px-6 md:px-12 py-24 max-w-5xl mx-auto border-t border-[var(--color-border)]">
         <div className="text-center mb-16 space-y-3 scroll-reveal">
           <span className="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-widest">
             Workflow
@@ -382,6 +408,53 @@ export const LandingPage: React.FC<Props> = ({ onGetStarted }) => {
               </p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Frequently Asked Questions (FAQ) Section for Google SEO & User Trust */}
+      <section id="faq" className="px-6 md:px-12 py-24 max-w-4xl mx-auto border-t border-[var(--color-border)]">
+        <div className="text-center mb-14 space-y-3 scroll-reveal">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-mono text-emerald-400">
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>Frequently Asked Questions</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)]">
+            Everything you need to know about Prakriti AI
+          </h2>
+          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] max-w-lg mx-auto">
+            Scientific evidence boundaries, hybrid vector retrieval, and private field document security.
+          </p>
+        </div>
+
+        <div className="space-y-3.5">
+          {faqs.map((faq, i) => {
+            const isOpen = openFaq === i;
+            return (
+              <div
+                key={i}
+                className="scroll-reveal rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-emerald-500/30 transition-colors overflow-hidden"
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(isOpen ? null : i)}
+                  className="w-full text-left px-5 py-4 flex items-center justify-between gap-4 cursor-pointer"
+                  aria-expanded={isOpen}
+                >
+                  <h3 className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)]">
+                    {faq.q}
+                  </h3>
+                  <div className={`p-1.5 rounded-lg bg-[var(--color-surface-2)] text-[var(--color-text-muted)] transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-180 text-emerald-400' : ''}`}>
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </button>
+                {isOpen && (
+                  <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed border-t border-[var(--color-border)]/40 animate-fadeIn">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 

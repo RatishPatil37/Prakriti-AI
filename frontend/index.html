@@ -4,19 +4,123 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234E8862' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22V12'/><path d='M7 7c0-2.76 2.24-5 5-5s5 2.24 5 5-4 9-5 10C8 16 7 9.76 7 7z'/></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Prakriti AI — Environmental Intelligence</title>
-    <meta name="description" content="AI-powered environmental science platform. Ask questions about soil health, biodiversity, carbon sequestration, and sustainable land management — grounded in peer-reviewed science." />
+    <title>Prakriti AI — Environmental Science & Soil Health Intelligence</title>
+    <meta name="description" content="Prakriti AI is an evidence-grounded environmental intelligence platform. Get verifiable scientific guidance on soil health, carbon sequestration, biodiversity restoration, and agroforestry — grounded in peer-reviewed IPCC, FAO, and IUCN research." />
+    <meta name="keywords" content="Prakriti AI, environmental AI, soil health AI, soil organic carbon calculator, biodiversity restoration assistant, agroforestry intelligence, IPCC scientific literature RAG, ecological intelligence platform, sustainable agriculture research, climate resilience AI" />
+    <meta name="author" content="Darukaa Earth & Prakriti AI" />
     <meta name="theme-color" content="#0A0E13" />
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="Prakriti AI — Environmental Intelligence" />
-    <meta property="og:description" content="Science-backed answers for soil, water, climate and biodiversity." />
-    <meta property="og:type" content="website" />
+    <!-- Canonical URL to prevent duplicate content ranking penalties -->
+    <link rel="canonical" href="https://prakriti-ai-eta.vercel.app/" />
 
-    <!-- Fonts -->
+    <!-- Search Engine Robots -->
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Prakriti AI" />
+    <meta property="og:url" content="https://prakriti-ai-eta.vercel.app/" />
+    <meta property="og:title" content="Prakriti AI — Environmental Science & Soil Health Intelligence" />
+    <meta property="og:description" content="Evidence-grounded conversational environmental intelligence for soil carbon, biodiversity recovery, and ecological restoration." />
+    <meta property="og:image" content="https://prakriti-ai-eta.vercel.app/og-preview.png" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://prakriti-ai-eta.vercel.app/" />
+    <meta name="twitter:title" content="Prakriti AI — Environmental Science & Soil Health Intelligence" />
+    <meta name="twitter:description" content="Evidence-grounded environmental research assistant for soil health, agroforestry, and biodiversity restoration." />
+    <meta name="twitter:image" content="https://prakriti-ai-eta.vercel.app/og-preview.png" />
+
+    <!-- Performance & Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- Schema.org JSON-LD Structured Data for Google Rich Results -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://prakriti-ai-eta.vercel.app/#website",
+          "url": "https://prakriti-ai-eta.vercel.app/",
+          "name": "Prakriti AI",
+          "description": "Scientific Environmental Intelligence & Soil Health Platform",
+          "inLanguage": "en-US",
+          "publisher": {
+            "@id": "https://prakriti-ai-eta.vercel.app/#organization"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://prakriti-ai-eta.vercel.app/#organization",
+          "name": "Prakriti AI / Darukaa Earth",
+          "url": "https://prakriti-ai-eta.vercel.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://prakriti-ai-eta.vercel.app/favicon.svg"
+          },
+          "sameAs": [
+            "https://github.com/RatishPatil37/Prakriti-AI"
+          ]
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://prakriti-ai-eta.vercel.app/#application",
+          "name": "Prakriti AI",
+          "operatingSystem": "Web Browser",
+          "applicationCategory": "ScientificSoftware",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "description": "Evidence-grounded conversational environmental intelligence system for soil organic carbon, biodiversity restoration, and climate resilience."
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://prakriti-ai-eta.vercel.app/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is Prakriti AI?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Prakriti AI is an evidence-grounded environmental research intelligence platform designed to assist agronomists, ecologists, farmers, and researchers with verifiable scientific answers regarding soil health, biodiversity, carbon sequestration, and ecological restoration."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does Prakriti AI ensure scientific grounding without hallucinations?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Prakriti AI uses a multi-stage hybrid retrieval architecture combining dense semantic vectors with sparse BM25 token frequencies via Reciprocal Rank Fusion (RRF). All model responses are verified against an immutable evidence manifest, and uncited search results or out-of-scope queries are strictly filtered out."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I upload my own soil test reports or farm surveys?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Authenticated users can upload private PDF, TXT, or MD documents (up to 25MB). These documents are partitioned inside an isolated vector tenant that is never shared with or exposed to any other users."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Which scientific sources ground Prakriti AI's citations?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Prakriti AI grounds responses in peer-reviewed scientific reports and assessments from authoritative bodies including the IPCC, IPBES, FAO, IUCN, and international agroecological bodies."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

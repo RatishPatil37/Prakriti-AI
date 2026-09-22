@@ -3,6 +3,7 @@ import pymupdf as fitz
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException, status
 from backend.src.config import settings
+from backend.src.ingestion.sanitizer import TextSanitizer
 
 class ParsedPage:
     def __init__(self, page_number: int, text: str):
@@ -49,7 +50,9 @@ class DocumentParser:
             page = doc[page_num]
             text = page.get_text("text")
             if text and text.strip():
-                pages.append(ParsedPage(page_number=page_num + 1, text=text.strip()))
+                sanitized_text = TextSanitizer.sanitize(text)
+                if sanitized_text:
+                    pages.append(ParsedPage(page_number=page_num + 1, text=sanitized_text))
 
         return pages
 
@@ -63,7 +66,10 @@ class DocumentParser:
             )
         try:
             text = file_bytes.decode("utf-8", errors="replace")
-            return [ParsedPage(page_number=1, text=text.strip())]
+            sanitized_text = TextSanitizer.sanitize(text)
+            if not sanitized_text:
+                return []
+            return [ParsedPage(page_number=1, text=sanitized_text)]
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

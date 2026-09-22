@@ -121,11 +121,15 @@ def build_scientist_prompt(
 
             # Format public evidence vs private untrusted document
             if item.scope == "private":
+                # Defensive delimiter escaping: strip any attempts to break out of untrusted_document tags
+                safe_text = re.sub(r"<\s*/?untrusted_document\s*>", " ", item.text, flags=re.IGNORECASE)
+                safe_text = sanitize_user_input(safe_text)
                 evidence_lines.append(
-                    f"{ref}\n<untrusted_document>\n{item.text}\n</untrusted_document>\n"
+                    f"{ref}\n<untrusted_document>\n{safe_text}\n</untrusted_document>\n"
                 )
             else:
-                evidence_lines.append(f"{ref}\n\"{item.text}\"\n")
+                safe_text = sanitize_user_input(item.text)
+                evidence_lines.append(f"{ref}\n\"{safe_text}\"\n")
 
         sections.append("### RETRIEVED SCIENTIFIC EVIDENCE\n" + "\n".join(evidence_lines))
     else:

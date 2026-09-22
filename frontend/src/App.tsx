@@ -58,6 +58,7 @@ const AppInner: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const assistantMsgIdRef = useRef<string | null>(null);
   const assistantContentRef = useRef<string>('');
+  const assistantSourcesRef = useRef<any[]>([]);
 
   // ─── Load conversation list ────────────────────────────────────────────────
   const refreshConversations = useCallback(async () => {
@@ -77,8 +78,19 @@ const AppInner: React.FC = () => {
     });
   }, [authToken]);
 
+  // ─── Cancel stream ─────────────────────────────────────────────────────────
+  const handleCancelStream = useCallback(() => {
+    abortControllerRef.current?.abort();
+    setIsStreaming(false);
+    setStreamingStage(null);
+    setMessages(prev =>
+      prev.map(msg => msg.isStreaming ? { ...msg, isStreaming: false } : msg)
+    );
+  }, []);
+
   // ─── Load a conversation's messages ───────────────────────────────────────
   const loadConversation = async (conversationId: string) => {
+    handleCancelStream();
     setActiveConversationId(conversationId);
     sessionStorage.setItem(ACTIVE_CONV_KEY, conversationId);
     setEvidenceList([]);
@@ -87,15 +99,53 @@ const AppInner: React.FC = () => {
     setClarificationData(null);
 
     const msgs = await loadMessages(conversationId);
-    setMessages(msgs.map((m: DBMessage) => ({
-      id: m.id,
-      role: m.role,
-      content: m.content,
-    })));
+
+    // Map DB messages to UI messages, preserving sources & reconstructing fallback if older records lacked citations
+    const uiMsgs: UIMessage[] = msgs.map((m: DBMessage) => {
+      let sources = Array.isArray(m.citations) ? m.citations : [];
+
+      // Fallback reconstruction: if sources is empty, but assistant message has [S1], [S2] tags in content
+      if (m.role === 'assistant' && sources.length === 0 && m.content) {
+        const citedTags = Array.from(new Set(m.content.match(/\[S\d+\]/g) || []));
+        if (citedTags.length > 0) {
+          sources = citedTags.map(tag => {
+            const id = tag.replace(/\[|\]/g, '');
+            return {
+              id,
+              title: `Peer-Reviewed Reference [${id}]`,
+              organization: 'Scientific Corpus',
+              text: '',
+            };
+          });
+        }
+      }
+
+      return {
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        sources: sources.length > 0 ? sources : undefined,
+      };
+    });
+
+    setMessages(uiMsgs);
+
+    // Restore evidenceList and verified state from the last assistant message with sources
+    const lastAssistantWithSources = [...uiMsgs].reverse().find(
+      m => m.role === 'assistant' && m.sources && m.sources.length > 0
+    );
+    if (lastAssistantWithSources && lastAssistantWithSources.sources) {
+      setEvidenceList(lastAssistantWithSources.sources);
+      setCitationsVerified(true);
+    } else {
+      setEvidenceList([]);
+      setCitationsVerified(null);
+    }
   };
 
   // ─── New conversation ──────────────────────────────────────────────────────
   const handleNewConversation = () => {
+    handleCancelStream();
     setActiveConversationId(null);
     sessionStorage.removeItem(ACTIVE_CONV_KEY);
     setMessages([]);
@@ -121,16 +171,6 @@ const AppInner: React.FC = () => {
     await togglePinConversation(id, currentPinned);
   };
 
-  // ─── Cancel stream ─────────────────────────────────────────────────────────
-  const handleCancelStream = () => {
-    abortControllerRef.current?.abort();
-    setIsStreaming(false);
-    setStreamingStage(null);
-    setMessages(prev =>
-      prev.map(msg => msg.isStreaming ? { ...msg, isStreaming: false } : msg)
-    );
-  };
-
   // ─── Send message ──────────────────────────────────────────────────────────
   const handleSendMessage = async (text: string) => {
     if (isStreaming) return;
@@ -146,6 +186,7 @@ const AppInner: React.FC = () => {
     const assistantMsgId = `a_${Date.now() + 1}`;
     assistantMsgIdRef.current = assistantMsgId;
     assistantContentRef.current = '';
+    assistantSourcesRef.current = [];
 
     // Optimistically add messages to UI
     setMessages(prev => [
@@ -196,6 +237,7 @@ const AppInner: React.FC = () => {
         signal: abortControllerRef.current.signal,
         onStatus: (stage) => setStreamingStage(stage),
         onEvidence: (sources, quality) => {
+          assistantSourcesRef.current = sources;
           setEvidenceList(sources);
           setQualityAssessment(quality);
           setMessages(prev =>
@@ -236,11 +278,16 @@ const AppInner: React.FC = () => {
           setIsStreaming(false);
           setStreamingStage(null);
 
+          const rawSources = assistantSourcesRef.current || [];
+          const finalFilteredSources = (isRefusal || citedIds.size === 0)
+            ? []
+            : rawSources.filter((s: any) => citedIds.has(s.id));
+
           if (isRefusal || citedIds.size === 0) {
             setEvidenceList([]);
             setQualityAssessment(null);
           } else {
-            setEvidenceList(prev => prev.filter(src => citedIds.has(src.id)));
+            setEvidenceList(finalFilteredSources);
           }
 
           setMessages(prev =>
@@ -249,9 +296,7 @@ const AppInner: React.FC = () => {
                 ? {
                     ...msg,
                     isStreaming: false,
-                    sources: (isRefusal || citedIds.size === 0)
-                      ? []
-                      : (msg.sources || []).filter((s: any) => citedIds.has(s.id)),
+                    sources: finalFilteredSources,
                     quality: (isRefusal || citedIds.size === 0)
                       ? null
                       : (quality || msg.quality),
@@ -259,9 +304,9 @@ const AppInner: React.FC = () => {
                 : msg
             )
           );
-          // Persist assistant response to Supabase
+          // Persist assistant response to Supabase along with its citations
           if (convId && finalContent.trim()) {
-            await saveMessage(convId, 'assistant', finalContent);
+            await saveMessage(convId, 'assistant', finalContent, finalFilteredSources);
             await refreshConversations();
           }
         },

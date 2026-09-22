@@ -106,8 +106,7 @@ export async function streamEnvironmentalQuery({
       },
       onerror(err) {
         console.error('SSE connection error:', err);
-        onError?.(err);
-        throw err; // Stop retrying
+        throw err; // Stop retrying and let outer catch handle error dispatch
       }
     });
   } catch (err: any) {

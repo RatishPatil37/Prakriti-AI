@@ -30,7 +30,7 @@ interface Props {
   clarificationData: any;
   onAnswerClarification: (answers: string) => void;
   conversationTitle?: string | null;
-  onOpenSources?: () => void;
+  onOpenSources?: (sources?: any[]) => void;
   onExportDossier?: (msg: Message) => void;
 }
 
@@ -227,12 +227,20 @@ const isRefusal = (text?: string): boolean => {
                                         source={matchingSource}
                                         onOpenSourceRail={() => {
                                           toggleSourceAccordion(msg.id);
-                                          onOpenSources?.();
+                                          onOpenSources?.(msg.sources);
                                         }}
                                       >
                                         [{children}]
                                       </CitationHoverCard>
                                     );
+                                  }
+                                  const isSafe = href && (
+                                    href.startsWith('http://') ||
+                                    href.startsWith('https://') ||
+                                    href.startsWith('mailto:')
+                                  );
+                                  if (!isSafe) {
+                                    return <span className="text-[var(--color-accent-light)]">{children}</span>;
                                   }
                                   return (
                                     <a
@@ -291,7 +299,7 @@ const isRefusal = (text?: string): boolean => {
                             {onOpenSources && msg.sources && msg.sources.length > 0 && (
                               <button
                                 type="button"
-                                onClick={onOpenSources}
+                                onClick={() => onOpenSources(msg.sources)}
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono text-[var(--color-text-muted)] hover:text-[var(--color-accent-light)] hover:bg-[var(--color-surface-2)] transition cursor-pointer whitespace-nowrap border border-transparent hover:border-[var(--color-border)]"
                                 title="Inspect evidence in side rail"
                               >
@@ -349,7 +357,7 @@ const isRefusal = (text?: string): boolean => {
                                 {onOpenSources && (
                                   <button
                                     type="button"
-                                    onClick={onOpenSources}
+                                    onClick={() => onOpenSources(msg.sources)}
                                     className="text-[11px] font-mono text-[var(--color-text-muted)] hover:text-[var(--color-accent-light)] transition cursor-pointer whitespace-nowrap shrink-0"
                                   >
                                     <span className="hidden sm:inline">View in </span>Rail →

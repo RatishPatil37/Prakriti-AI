@@ -116,12 +116,17 @@ class QdrantKnowledgeStore:
         Looks up a single source point, enforcing tenant access rules to prevent IDOR:
         Returns point if scope is public, or if scope is private and owner matches verified_user_id.
         """
-        records = self.client.retrieve(
-            collection_name=self.collection_name,
-            ids=[point_id],
-            with_payload=True,
-            with_vectors=False
-        )
+        try:
+            records = self.client.retrieve(
+                collection_name=self.collection_name,
+                ids=[point_id],
+                with_payload=True,
+                with_vectors=False
+            )
+        except Exception as e:
+            logger.debug(f"Invalid point_id or Qdrant retrieve error for '{point_id}': {e}")
+            return None
+
         if not records:
             return None
 

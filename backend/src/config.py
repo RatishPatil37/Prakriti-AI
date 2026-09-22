@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     # Server
     PORT: int = 8000
     ENVIRONMENT: str = "development"
+    TESTING: bool = False
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://localhost:3000",

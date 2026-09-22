@@ -71,8 +71,13 @@ export const DocumentManager: React.FC<Props> = ({ isOpen, onClose, authToken })
     }
   };
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const handleDelete = async (docId: string) => {
     if (!authToken) return;
+    setDeletingId(docId);
+    setError(null);
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/documents/${docId}`, {
         method: 'DELETE',
@@ -80,9 +85,17 @@ export const DocumentManager: React.FC<Props> = ({ isOpen, onClose, authToken })
       });
       if (res.ok) {
         setDocuments(documents.filter(d => d.id !== docId));
+        setSuccess("Document removed from your vault.");
+        setConfirmDeleteId(null);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setError(errData.detail || "Failed to remove document.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete document:', err);
+      setError("Network error while removing document.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -184,13 +197,32 @@ export const DocumentManager: React.FC<Props> = ({ isOpen, onClose, authToken })
                             {doc.page_count} pages · {doc.chunk_count} sections
                           </p>
                         </div>
-                        <button
-                          onClick={() => handleDelete(doc.id)}
-                          className="p-1.5 text-[var(--color-text-muted)] hover:text-rose-400 rounded-lg hover:bg-rose-950/40 transition flex-shrink-0"
-                          title="Remove document"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {confirmDeleteId === doc.id ? (
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button
+                              onClick={() => handleDelete(doc.id)}
+                              disabled={deletingId === doc.id}
+                              className="px-2 py-1 text-[10px] font-medium bg-rose-600 hover:bg-rose-500 text-white rounded-md transition cursor-pointer"
+                            >
+                              {deletingId === doc.id ? 'Deleting…' : 'Confirm'}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-md cursor-pointer"
+                              title="Cancel"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(doc.id)}
+                            className="p-1.5 text-[var(--color-text-muted)] hover:text-rose-400 rounded-lg hover:bg-rose-950/40 transition flex-shrink-0 cursor-pointer"
+                            title="Remove document"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>

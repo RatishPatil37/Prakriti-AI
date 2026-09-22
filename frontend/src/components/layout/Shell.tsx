@@ -67,7 +67,12 @@ export const Shell: React.FC<Props> = ({
   });
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [dossierMessage, setDossierMessage] = useState<any | null>(null);
+  const [activeInspectSources, setActiveInspectSources] = useState<any[] | null>(null);
   const { theme, toggle: toggleTheme } = useTheme();
+
+  useEffect(() => {
+    setActiveInspectSources(null);
+  }, [activeConversationId]);
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     return localStorage.getItem('prakriti_sidebar_open') !== 'false';
@@ -276,7 +281,10 @@ export const Shell: React.FC<Props> = ({
             {/* Sources panel toggle */}
             <button
               id="tour-sources-btn"
-              onClick={() => setSourcesOpen(v => !v)}
+              onClick={() => {
+                setActiveInspectSources(null);
+                setSourcesOpen(v => !v);
+              }}
               title={sourcesOpen ? 'Hide sources' : 'Show sources'}
               className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border shrink-0 whitespace-nowrap ${
                 sourcesOpen
@@ -286,9 +294,9 @@ export const Shell: React.FC<Props> = ({
             >
               <BookOpen className="w-4 h-4 text-[var(--color-accent-light)] shrink-0" />
               <span className="hidden sm:inline">Sources</span>
-              {evidenceList.length > 0 && (
+              {(activeInspectSources || evidenceList).length > 0 && (
                 <span className="bg-[var(--color-accent-subtle)] text-[var(--color-accent-light)] px-1.5 py-0.5 rounded-full text-[10px] font-semibold font-mono">
-                  {evidenceList.length}
+                  {(activeInspectSources || evidenceList).length}
                 </span>
               )}
             </button>
@@ -308,17 +316,25 @@ export const Shell: React.FC<Props> = ({
             clarificationData={clarificationData}
             onAnswerClarification={onSendMessage}
             conversationTitle={activeConversation?.title ?? null}
-            onOpenSources={() => setSourcesOpen(true)}
+            onOpenSources={(specificSources) => {
+              if (specificSources && specificSources.length > 0) {
+                setActiveInspectSources(specificSources);
+              }
+              setSourcesOpen(true);
+            }}
             onExportDossier={(msg) => setDossierMessage(msg)}
           />
 
           {/* Evidence panel — shown when toggled open */}
           {sourcesOpen && (
             <EvidencePanel
-              evidenceList={evidenceList}
+              evidenceList={activeInspectSources || evidenceList}
               qualityAssessment={qualityAssessment}
               citationsVerified={citationsVerified}
-              onClose={() => setSourcesOpen(false)}
+              onClose={() => {
+                setSourcesOpen(false);
+                setActiveInspectSources(null);
+              }}
             />
           )}
         </div>

@@ -18,6 +18,8 @@
    - [2.10 Post-Stream Citation Pruning & Evidence Gate Truth: Why Pre-Streaming All Candidates Causes Hallucination Mismatches](#210-post-stream-citation-pruning--evidence-gate-truth-why-pre-streaming-all-candidates-causes-hallucination-mismatches)
    - [2.11 Conditional Clarification vs. Aggressive Interruption: The Claude-Style Questionnaire Architecture](#211-conditional-clarification-vs-aggressive-interruption-the-claude-style-questionnaire-architecture)
    - [2.12 Desktop Scientific Workstation UI: Spotlight Tour, Command Palette, Citation Popovers & Dossier Generation](#212-desktop-scientific-workstation-ui-spotlight-tour-command-palette-citation-popovers--dossier-generation)
+   - [2.13 Red-Team Pentest Hardening & Production Bug Elimination](#213-red-team-pentest-hardening--production-bug-elimination)
+   - [2.14 Organic Google Search Dominance (#1 SEO Strategy)](#214-organic-google-search-dominance-1-seo-strategy)
 3. [Key Operational Invariants](#3-key-operational-invariants)
 
 ---
@@ -40,6 +42,7 @@ The following table summarizes the major problem statements, requested enhanceme
 | **Milestone 10: Post-Stream Citation Pruning & Evidence Truth** | Stop displaying uncited retrieval candidates in the Evidence Rail and eliminate false confidence ratings in the Evidence Gate. | Fixed `evidence_gate.py` by removing the `or len(item.text) > 100` false-positive trigger. Implemented `filter_cited_evidence()` in `stream.py`: post-stream regex audit cross-references markdown tokens (`[SX]`) against retrieved chunks, purges uncited candidates (`retrieved S1..S3 + cited S1 → UI displays ONLY S1`), and guarantees `sources: []` for refusals and conversational pleasantries. |
 | **Milestone 11: Production Keep-Alive & Lifespan Pre-Warming** | Prevent Render cold-start delays and eliminate the 12–15s Query 1 FastEmbed model spin-up delay while satisfying Render's 750 free hours limit. | Updated `.github/workflows/keep_alive.yml` with live Render URL `https://prakriti-ai-jgsn.onrender.com/health` (10-min cron, 08:00 AM to 01:00 AM IST, 17 hours/day = ~552 hrs/mo < 750h limit, <2ms response time). Pre-warmed FastEmbed dense ONNX and sparse BM25 models in FastAPI `lifespan` on startup, cutting initial query latency to sub-second. |
 | **Milestone 12: $1M+ Scientific Workstation UI Overhaul** | Build a high-density, authoritative workstation free of generic AI slop with keyboard navigation, guided onboarding, and publication-ready outputs. | Built Claude-style conditional Q&A questionnaire (`ClarificationQuestionnaire.tsx`), 4-step spotlight walkthrough tour (`OnboardingTour.tsx`), global command palette (`CommandPalette.tsx`, `Cmd+K`), Nature-style citation hover cards (`CitationHoverCard.tsx`), living site profile HUD (`Shell.tsx`), executive printable dossier export (`DossierExportModal.tsx`), resizable Gemini-style sidebar (`ConversationSidebar.tsx`), and landing page typewriter & scroll animations. |
+| **Milestone 13: Red-Team Pentest Hardening, Bug Elimination & Google #1 SEO** | Perform comprehensive security audit, fix 16 production vulnerabilities/logic defects across backend & frontend, and implement Google #1 SEO architecture. | Streamed chunked uploads with Content-Length limits (anti-DoS), SHA-256 deduplication (409 Conflict), file extension whitelisting, parser & prompt delimiter injection sanitization, unsigned JWT lockdown (`TESTING=True`), rate limiter TTL key pruning, IDOR row validation, safe markdown link protocol filtering, SSE cancellation on session switch, and complete Schema.org JSON-LD + crawlable FAQ SEO. |
 
 ---
 
@@ -338,9 +341,73 @@ Modern conversational interfaces often suffer from "AI slop" — bloated layouts
 
 ---
 
+### 2.13 Red-Team Pentest Hardening & Production Bug Elimination
+
+Following a rigorous red-team security penetration test and code reliability review, 16 critical vulnerabilities and edge-case bugs were eradicated across the full stack:
+
+1. **Unsigned JWT Bypass Guard (`auth.py`)**:
+   * *Vulnerability*: Previously checked `settings.ENVIRONMENT != "production"`. In staging or environments where `ENVIRONMENT` defaulted to `"development"`, any forged, unsigned JWT was granted full tenant privileges.
+   * *Remediation*: Restricted the bypass exclusively to `if getattr(settings, "TESTING", False):`. In all server deployments, signed cryptographic token verification (JWKS / HS256) is non-negotiable.
+
+2. **Chunked Streaming Upload & Memory Exhaustion Shield (`main.py`)**:
+   * *Vulnerability*: Calling `await file.read()` directly loaded unbounded payload bytes into server memory, threatening instant Out-Of-Memory (OOM) crashes on Render's 512MB RAM tier.
+   * *Remediation*: Enforced a 2-stage defensive barrier: (1) `Content-Length` header pre-check against `MAX_UPLOAD_SIZE_MB`, and (2) 64KB chunk-streaming reader that terminates immediately if accumulated bytes exceed the threshold.
+
+3. **SHA-256 Upload Deduplication (`main.py`)**:
+   * *Vulnerability*: Repeatedly uploading the exact same document bloated Postgres document tables and produced redundant, duplicate embedding vectors in Qdrant.
+   * *Remediation*: Computes a SHA-256 digest (`content_hash`) of uploaded bytes and checks existing records for `(user_id, content_hash)`. Duplicates are rejected with `409 Conflict` before triggering embedding computation.
+
+4. **Indirect Prompt Injection & Delimiter Neutralization (`parser.py`, `prompts.py`)**:
+   * *Vulnerability*: Malicious user PDFs containing `</untrusted_document>` could prematurely break out of the private document boundary and hijack the LLM system instructions.
+   * *Remediation*: Dual defense-in-depth: (1) `TextSanitizer.sanitize()` strips null bytes and escape tags at ingestion, and (2) `build_scientist_prompt()` defensively escapes `<untrusted_document>` tags inside chunk text before LLM compilation.
+
+5. **Rate Limiter Memory Leak Prevention (`rate_limit.py`)**:
+   * *Vulnerability*: Distributed scrapers or rotating IP addresses caused the in-memory rate-limiting dictionary to accumulate infinite timestamps, creating an uncollectable memory leak.
+   * *Remediation*: Added bounded eviction (`MAX_TRACKED_IPS = 10,000`) and a periodic cleanup routine (`_maybe_prune`) that purges inactive keys whose timestamps have fully expired beyond the sliding window.
+
+6. **IDOR Deletion Row Count Verification (`supabase_db.py`)**:
+   * *Vulnerability*: Deleting a document without checking if the affected row was actually owned by the requester masked authorization failures and returned false success.
+   * *Remediation*: Evaluates `len(response.data) > 0`. If the document does not exist or belongs to another tenant, the backend aborts before invoking vector deletion.
+
+7. **Race Condition SSE Disconnect on Conversation Switch (`App.tsx`)**:
+   * *Vulnerability*: Clicking between conversations while an SSE stream was actively transmitting allowed tokens from conversation A to bleed into conversation B's chat history.
+   * *Remediation*: Calling `loadConversation()` or `handleNewConversation()` immediately invokes `handleCancelStream()`, aborting the `AbortController` and flushing the active buffer before loading the target session.
+
+8. **Client-Side Markdown Protocol Filtering (`ChatPanel.tsx`)**:
+   * *Vulnerability*: Markdown links generated by models or user reflections could execute cross-site scripting via `javascript:...` or `data:...` URIs.
+   * *Remediation*: Custom URL transformer strictly whitelisting `http:`, `https:`, `mailto:`, and `#cite-` anchors.
+
+9. **LocalStorage LRU Eviction Under Storage Pressure (`conversations.ts`)**:
+   * *Vulnerability*: Repeated long sessions triggered `QuotaExceededError` in browser storage, throwing unhandled exceptions.
+   * *Remediation*: Wrapped cache writes in error handling; on quota exhaustion, the client systematically evicts the oldest unpinned conversation keys to preserve operational continuity.
+
+---
+
+### 2.14 Organic Google Search Dominance (#1 SEO Strategy)
+
+To secure #1 ranking for authoritative queries across scientific biodiversity and environmental intelligence, Prakriti AI implements a comprehensive, search-engine-grade SEO architecture:
+
+1. **Schema.org Semantic Graph (JSON-LD)**:
+   * Placed in `<head>` of `index.html` across four interlocking schemas: `WebSite`, `Organization`, `SoftwareApplication` (ScienceApplication category), and `FAQPage`.
+   * Directly satisfies Google's Rich Result guidelines for interactive SERP snippets.
+
+2. **Visible Concordance FAQ Accordion (`LandingPage.tsx`)**:
+   * *Google Invariant*: Google Search penalizes sites whose JSON-LD `FAQPage` schema does not match 100% visible on-page text.
+   * Prakriti AI implements an authoritative semantic `<section id="faq">` featuring animated crawlable `<details>` / `<summary>` accordions directly mirroring the JSON-LD schema questions and answers.
+
+3. **Crawlability & Indexing Signals**:
+   * `robots.txt`: Explicitly permits `Googlebot` across all indexable routes, points to the XML sitemap, and blocks administrative / API paths.
+   * `sitemap.xml`: Declares canonical URLs with daily change frequency and priority 1.0.
+   * Canonical `<link rel="canonical">` tags prevent duplicate content penalties across Vercel deploy previews.
+
+4. **Social & Discovery Cards**:
+   * Full OpenGraph (`og:title`, `og:description`, `og:image`, `og:url`, `og:site_name`) and Twitter Card (`summary_large_image`) metadata optimized for high Click-Through-Rate (CTR).
+
+---
+
 ## 3. Key Operational Invariants
 
-Whenever maintaining, refactoring, or extending the Prakriti AI codebase, uphold these seven non-negotiable engineering invariants:
+Whenever maintaining, refactoring, or extending the Prakriti AI codebase, uphold these non-negotiable engineering invariants:
 
 1. **Security Isolation is Immutable**: Never relax the tenant visibility filter in Qdrant or Supabase. Never trust `user_id` passed in request payloads; extract it solely from cryptographically verified JWTs.
 2. **Strict Citation Truth & Post-Stream Pruning**: Citations must map to real pre-indexed evidence chunks in `darukaa_knowledge`. Every uncited candidate chunk must be pruned before final display (`retrieved == candidate, displayed == cited`). Out-of-scope queries and small talk must emit `sources: []`.
@@ -349,4 +416,8 @@ Whenever maintaining, refactoring, or extending the Prakriti AI codebase, uphold
 5. **Sub-Second TTFT & Lifespan Pre-Warming**: Any changes to embedding models or prompt scaffolds must be benchmarked against `test_ttft_profiling.py`. FastAPI `lifespan` must pre-warm all dense and sparse models on boot.
 6. **Deterministic Pre-Filters Before LLMs**: Always filter missing parameters and out-of-scope queries using sub-5ms deterministic code before consuming LLM tokens.
 7. **Zero AI Slop UI Standard**: Maintain high-density, authoritative workstation typography. Provide keyboard ergonomics (`Cmd+K`, 1–9 shortcuts), smooth transitions, and audit-ready printable documentation.
+8. **Memory-Bounded Ingress & Streaming**: All file uploads must stream in 64KB chunks under `MAX_UPLOAD_SIZE_MB` with `Content-Length` checks. In-memory data structures (rate limiters, caches) must enforce bounded capacity and TTL garbage collection to run stably on Render containers.
+9. **Prompt Injection & Link Protocol Sanitization**: Sanitize untrusted user document text at both ingestion and generation boundaries. Whitelist link protocols on the frontend to prevent stored XSS.
+10. **100% SEO Schema Concordance**: Any updates to Schema.org JSON-LD structured data must be accompanied by identical, visible, crawlable semantic text on the landing page.
+
 

@@ -89,14 +89,15 @@ def verify_token(token: str) -> Dict[str, Any]:
     except Exception as e:
         logger.debug(f"Direct Supabase auth.get_user verification failed: {e}")
 
-    # 4. Development/Test mock token verification (ONLY permitted when ENVIRONMENT != 'production')
-    if settings.ENVIRONMENT != "production":
+    # 4. Test mock token verification (STRICTLY permitted ONLY when settings.TESTING is True)
+    if getattr(settings, "TESTING", False):
         try:
             payload = jwt.decode(
                 token,
                 options={"verify_signature": False, "verify_exp": False, "verify_aud": False}
             )
             if "sub" in payload:
+                logger.warning("Mock JWT accepted because settings.TESTING=True. NEVER permit in deployed environments.")
                 return payload
         except Exception:
             pass

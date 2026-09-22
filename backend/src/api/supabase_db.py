@@ -86,11 +86,13 @@ class SupabaseService:
         if client:
             try:
                 # Explicitly scoped to owner_user_id to prevent IDOR
-                client.table("documents")\
+                response = client.table("documents")\
                     .update({"status": "deleted"})\
                     .eq("id", document_id)\
                     .eq("owner_user_id", verified_user_id)\
                     .execute()
+                if response and hasattr(response, "data") and response.data is not None:
+                    return len(response.data) > 0
                 return True
             except Exception as e:
                 logger.error(f"Supabase delete document error: {e}")

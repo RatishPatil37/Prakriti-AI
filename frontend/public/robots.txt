@@ -1,0 +1,14 @@
+# Prakriti AI Robots.txt — Search Engine Crawling Instructions
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Explicit Bot Directives
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Sitemap Location
+Sitemap: https://prakriti-ai-eta.vercel.app/sitemap.xml

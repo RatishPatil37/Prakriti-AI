@@ -67,7 +67,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS if settings.CORS_ORIGINS else ["*"],
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origin_regex=r"https://(prakriti-ai|darukaa-earth-ai)[a-z0-9-]*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -148,15 +148,61 @@ async def upload_document_endpoint(
             detail=f"User document limit reached ({settings.MAX_DOCUMENTS_PER_USER} documents max). Please delete an older document."
         )
 
-    file_bytes = await file.read()
+    # Check content-length header upfront if provided to reject oversized payloads before buffering
+    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            if int(content_length) > max_bytes:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail=f"Upload exceeds maximum size limit of {settings.MAX_UPLOAD_SIZE_MB}MB"
+                )
+        except ValueError:
+            pass
+
+    # Validate file extension against allowed whitelist
+    filename = file.filename or "uploaded_document"
+    ext = f".{filename.rsplit('.', 1)[-1].lower()}" if "." in filename else ""
+    allowed_extensions = {".pdf", ".txt", ".md"}
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported file type '{ext}'. Allowed extensions: {', '.join(sorted(allowed_extensions))}"
+        )
+
+    # Stream-read file bytes in chunks to prevent memory exhaustion DoS
+    chunk_size = 64 * 1024  # 64 KB
+    chunks_list = []
+    total_bytes = 0
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total_bytes += len(chunk)
+        if total_bytes > max_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Upload exceeds maximum size limit of {settings.MAX_UPLOAD_SIZE_MB}MB"
+            )
+        chunks_list.append(chunk)
+
+    file_bytes = b"".join(chunks_list)
     if not file_bytes:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file uploaded")
 
-    filename = file.filename or "uploaded_document"
     content_hash = hashlib.sha256(file_bytes).hexdigest()
 
+    # Deduplication check: prevent redundant chunking, embeddings, and vector index bloat
+    for existing in existing_docs:
+        if existing.get("content_hash") == content_hash and existing.get("status") != "deleted":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"This document is already indexed ('{existing.get('title', 'Existing Document')}')."
+            )
+
     # Parse pages with quota validation
-    if filename.lower().endswith(".pdf"):
+    if ext == ".pdf":
         pages = DocumentParser.parse_pdf_bytes(file_bytes)
     else:
         pages = DocumentParser.parse_text_bytes(file_bytes)

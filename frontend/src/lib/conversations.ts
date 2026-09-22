@@ -47,7 +47,24 @@ function loadConvsFromCache(userId: string): Conversation[] {
 function saveMsgsToCache(userId: string, convId: string, messages: Message[]) {
   try {
     localStorage.setItem(msgCacheKey(userId, convId), JSON.stringify(messages));
-  } catch {}
+  } catch (err: any) {
+    // If browser localStorage quota (5MB) is exceeded, evict older cached conversation messages
+    if (err?.name === 'QuotaExceededError' || err?.code === 22) {
+      try {
+        const msgKeys: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(`prakriti_msgs_${userId}_`) && key !== msgCacheKey(userId, convId)) {
+            msgKeys.push(key);
+          }
+        }
+        // Remove half of the oldest cached conversations to recover quota
+        const toEvict = msgKeys.slice(0, Math.max(1, Math.floor(msgKeys.length / 2)));
+        toEvict.forEach(k => localStorage.removeItem(k));
+        localStorage.setItem(msgCacheKey(userId, convId), JSON.stringify(messages));
+      } catch {}
+    }
+  }
 }
 
 function loadMsgsFromCache(userId: string, convId: string): Message[] {
@@ -186,6 +203,15 @@ async function pruneOldConversations(): Promise<void> {
   if (data && data.length > MAX_CONVERSATIONS) {
     const toDelete = data.slice(0, data.length - MAX_CONVERSATIONS).map(c => c.id);
     await supabase.from('conversations').delete().in('id', toDelete);
+
+    // Also clean up local cache so localStorage does not leak pruned records
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (userId) {
+      toDelete.forEach(id => localStorage.removeItem(msgCacheKey(userId, id)));
+      const cached = loadConvsFromCache(userId).filter(c => !toDelete.includes(c.id));
+      saveConvsToCache(userId, cached);
+    }
   }
 }
 

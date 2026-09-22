@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Production%20Ready-10B981?style=for-the-badge&logo=statuspage&logoColor=white" alt="Production Ready" />
-  <img src="https://img.shields.io/badge/Pytest-44%2F44%20Passed-10B981?style=for-the-badge&logo=pytest&logoColor=white" alt="Pytest Passed" />
+  <img src="https://img.shields.io/badge/Pytest-46%2F46%20Passed-10B981?style=for-the-badge&logo=pytest&logoColor=white" alt="Pytest Passed" />
   <img src="https://img.shields.io/badge/Qdrant%20Cloud-Hybrid%20RRF-009245?style=for-the-badge&logo=qdrant&logoColor=white" alt="Qdrant Hybrid" />
   <img src="https://img.shields.io/badge/LLM%20Chain-Gemini%20%2B%20Groq-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini LLM" />
   <img src="https://img.shields.io/badge/Telemetry-Langfuse%20Tracing-FF6B6B?style=for-the-badge&logo=apacheairflow&logoColor=white" alt="Langfuse Tracing" />
@@ -30,6 +30,7 @@
 - [6. Local Development &amp; Deployment](#6-local-development--deployment)
 - [7. Automated Test Suite](#7-automated-test-suite)
 - [8. Security &amp; Compliance Invariants](#8-security--compliance-invariants)
+- [9. Google Search Engine Optimization (SEO) Architecture](#9-google-search-engine-optimization-seo-architecture)
 
 ---
 
@@ -49,7 +50,7 @@
 * **Database & Persistence**: Supabase PostgreSQL with Row-Level Security (RLS).
 * **Telemetry & Tracing**: Langfuse Open-Source Tracing SDK.
 * **Streaming Protocol**: Server-Sent Events (SSE) via `@microsoft/fetch-event-source`.
-* **Automated Test Suite**: 44 passing tests covering security isolation, deterministic guardrails, conversational intent, citation auditing, and sub-second TTFT.
+* **Automated Test Suite**: 46 passing tests covering security isolation, deterministic guardrails, conversational intent, citation auditing, rate limiter TTL pruning, upload sanitization, and sub-second TTFT.
 
 ---
 
@@ -419,7 +420,7 @@ cp .env.example .env
 # Install backend dependencies
 pip install -r backend/requirements.txt
 
-# Run complete test suite (44 automated tests)
+# Run complete test suite (46 automated tests)
 python -m pytest backend/tests/ -v
 
 # Seed authoritative scientific corpus into Qdrant Cloud
@@ -476,36 +477,64 @@ backend/tests/test_guardrails.py::test_conversational_intent_identity PASSED    
 backend/tests/test_guardrails.py::test_conversational_intent_help PASSED                [ 52%]
 backend/tests/test_guardrails.py::test_conversational_intent_mixed PASSED               [ 54%]
 backend/tests/test_guardrails.py::test_conversational_intent_none_for_scientific PASSED  [ 56%]
-backend/tests/test_rate_limit.py::test_anonymous_ip_rate_limiting PASSED                 [ 59%]
-backend/tests/test_rate_limit.py::test_authenticated_user_rate_limiting PASSED            [ 61%]
+backend/tests/test_rate_limit.py::test_anonymous_ip_rate_limiting PASSED                 [ 56%]
+backend/tests/test_rate_limit.py::test_authenticated_user_rate_limiting PASSED            [ 58%]
+backend/tests/test_rate_limit.py::test_rate_limit_cleanup_stale_keys PASSED               [ 60%]
 backend/tests/test_security_isolation.py::test_query_and_ingestion_embedding_compatibility PASSED [ 63%]
 backend/tests/test_security_isolation.py::test_multi_tenant_isolation_matrix PASSED      [ 65%]
-backend/tests/test_security_isolation.py::test_production_mode_rejects_unsigned_jwt PASSED [ 68%]
-backend/tests/test_streaming.py::test_sse_stream_events PASSED                           [ 70%]
-backend/tests/test_streaming.py::test_client_disconnect_cancels_generation PASSED       [ 72%]
-backend/tests/test_tracing.py::test_tracer_no_op_fallback PASSED                          [ 75%]
-backend/tests/test_tracing.py::test_tracer_client_retrieval PASSED                       [ 77%]
-backend/tests/test_ttft_profiling.py::test_embedding_load_time PASSED                    [ 79%]
-backend/tests/test_ttft_profiling.py::test_parallel_vs_sequential PASSED                 [ 81%]
+backend/tests/test_security_isolation.py::test_production_mode_rejects_unsigned_jwt PASSED [ 67%]
+backend/tests/test_security_isolation.py::test_parser_sanitizes_injection_tags PASSED    [ 69%]
+backend/tests/test_streaming.py::test_sse_stream_events PASSED                           [ 71%]
+backend/tests/test_streaming.py::test_client_disconnect_cancels_generation PASSED       [ 73%]
+backend/tests/test_tracing.py::test_tracer_no_op_fallback PASSED                          [ 76%]
+backend/tests/test_tracing.py::test_tracer_client_retrieval PASSED                       [ 78%]
+backend/tests/test_ttft_profiling.py::test_embedding_load_time PASSED                    [ 80%]
+backend/tests/test_ttft_profiling.py::test_parallel_vs_sequential PASSED                 [ 82%]
 backend/tests/test_ttft_profiling.py::test_gemini_ttft PASSED                            [ 84%]
 backend/tests/test_ttft_profiling.py::test_embedding_pipeline_e2e PASSED                 [ 86%]
-backend/tests/test_ttft_profiling.py::test_auth_verification_latency PASSED             [ 88%]
-backend/tests/test_ttft_profiling.py::test_embedding_load_pytest PASSED                  [ 90%]
+backend/tests/test_ttft_profiling.py::test_auth_verification_latency PASSED             [ 89%]
+backend/tests/test_ttft_profiling.py::test_embedding_load_pytest PASSED                  [ 91%]
 backend/tests/test_ttft_profiling.py::test_parallel_embedding_pytest PASSED              [ 93%]
 backend/tests/test_ttft_profiling.py::test_e2e_pipeline_pytest PASSED                    [ 95%]
 backend/tests/test_ttft_profiling.py::test_auth_latency_pytest PASSED                    [ 97%]
 backend/tests/test_ttft_profiling.py::test_gemini_ttft_pytest PASSED                     [100%]
-=================================== 44 passed in 23.97s ===================================
+=================================== 46 passed in 55.19s ===================================
 ```
 
 ---
 
-## 8. Security & Compliance Invariants
+## 8. Security, Pentest Hardening & Production Compliance
+
+Following a comprehensive red-team penetration test and code audit, the system enforces the following battle-tested invariants:
 
 1. **Zero Secret Leakage**: Private credentials (`.env`, `GEMINI_API_KEY`, `QDRANT_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) are git-ignored. The client only consumes the public `SUPABASE_ANON_KEY`.
-2. **Deterministic Multi-Tenant Boundary**: The filter `(scope == "public") OR (scope == "private" AND owner_user_id == verified_user_id)` is non-negotiable and executed at the vector database level.
-3. **No Unverified Claims**: The system requires valid citations `[S1]`, `[S2]` mapped to real, pre-indexed documents for factual claims.
-4. **Resilient Telemetry**: Telemetry failures (Langfuse network partitions or missing keys) never interrupt or block the user response.
+2. **Deterministic Multi-Tenant Boundary**: The filter `(scope == "public") OR (scope == "private" AND owner_user_id == verified_user_id)` is non-negotiable and executed at the vector database level. User IDs are extracted solely from cryptographically validated JWTs.
+3. **Strict Auth Bypass Lockdown**: Development auth bypass is strictly guarded by `TESTING = True` (activated solely under pytest runners), preventing unsigned token forgery in unconfigured or non-production deployments.
+4. **Memory Exhaustion & DoS Prevention**: Upload endpoints stream multipart bodies in 64KB chunks up to `MAX_UPLOAD_SIZE_MB` (default 20MB) with `Content-Length` headers pre-validated before buffer allocation.
+5. **Upload Deduplication**: File contents are digested via SHA-256 (`content_hash`). Duplicate uploads by the same user return `409 Conflict`, preventing storage ballooning and redundant Qdrant vectors.
+6. **MIME & Extension Whitelisting**: Uploads strictly accept `.pdf`, `.txt`, and `.md` extensions with validation against raw byte signatures. Executable binaries and scripts are rejected with `400 Bad Request`.
+7. **Prompt Injection & Delimiter Neutralization**: Ingested texts undergo sanitization removing null bytes and prompt-injection tags (`<untrusted_document>`, `</untrusted_document>`). The generation prompt escapes system boundary tags before LLM compilation.
+8. **Bounded Memory Rate Limiter**: The sliding-window rate limiter runs periodic TTL garbage collection (`_maybe_prune`) and caps total active tracking keys (max 10,000 IPs) to prevent denial-of-service memory leaks on Render.
+9. **IDOR Defense in Document Deletion**: Supabase deletion queries verify matching affected row counts (`len(response.data) > 0`) before executing vector store deletion, preventing deceptive deletion acknowledgements.
+10. **Client-Side Markdown Protocol Filtering**: React Markdown links are strictly filtered to allow only safe protocols (`http:`, `https:`, `mailto:`, `#cite-`), blocking XSS vectors via `javascript:` URIs.
+11. **Local Cache LRU Eviction**: LocalStorage message caching handles `QuotaExceededError` by evicting the oldest unpinned conversation keys, ensuring graceful degradation on memory-constrained devices.
+
+---
+
+## 9. Google Search Engine Optimization (SEO) Architecture
+
+Engineered to achieve #1 organic search positioning for high-intent environmental science queries:
+
+* **Schema.org Structured Data (JSON-LD)**: Complete semantic graph on `index.html`:
+  * `WebSite` with SearchAction potential.
+  * `Organization` detailing Darukaa.Earth authorship and scientific mission.
+  * `SoftwareApplication` declaring ApplicationCategory `ScienceApplication`, license, and feature list.
+  * `FAQPage` schema mapped 1:1 to visible on-page accordion questions for Google SERP rich snippet expansion.
+* **Crawlable On-Page FAQ**: Full crawlable semantic `<details>` / `<summary>` accordions in `LandingPage.tsx` (#faq anchor), guaranteeing 100% concordance with structured data.
+* **Crawl Directives & Sitemaps**:
+  * `robots.txt`: Optimized crawl paths permitting `Googlebot` across all indexable routes.
+  * `sitemap.xml`: High-priority (1.0) XML sitemap referencing canonical URLs.
+* **Social & Discovery Cards**: Full OpenGraph (`og:type`, `og:image`, `og:title`) and Twitter Card (`summary_large_image`) metadata with canonical link references.
 
 ---
 

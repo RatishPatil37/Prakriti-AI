@@ -13,14 +13,29 @@ class SlidingWindowRateLimiter:
     def __init__(self):
         self._ip_history: Dict[str, List[float]] = defaultdict(list)
         self._user_history: Dict[str, List[float]] = defaultdict(list)
+        self._last_prune: float = time.time()
+        self._prune_interval: float = 300.0  # Prune every 5 minutes
+        self._max_tracked_keys: int = 5000
 
     def _clean_window(self, timestamps: List[float], window_seconds: float = 60.0) -> List[float]:
         cutoff = time.time() - window_seconds
         return [t for t in timestamps if t > cutoff]
 
+    def _maybe_prune(self, now: float, window_seconds: float = 60.0):
+        if (now - self._last_prune > self._prune_interval) or (len(self._ip_history) + len(self._user_history) > self._max_tracked_keys):
+            self._last_prune = now
+            cutoff = now - window_seconds
+            stale_ips = [ip for ip, ts in self._ip_history.items() if not ts or ts[-1] <= cutoff]
+            for ip in stale_ips:
+                del self._ip_history[ip]
+            stale_users = [u for u, ts in self._user_history.items() if not ts or ts[-1] <= cutoff]
+            for u in stale_users:
+                del self._user_history[u]
+
     def check_rate_limit(self, request: Request, user_id: Optional[str] = None):
         now = time.time()
         window_seconds = 60.0
+        self._maybe_prune(now, window_seconds)
 
         if user_id:
             # Authenticated user limit

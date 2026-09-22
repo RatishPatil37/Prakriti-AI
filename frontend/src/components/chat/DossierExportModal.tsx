@@ -197,9 +197,9 @@ export const DossierExportModal: React.FC<Props> = ({
                       <span className="font-semibold text-[var(--color-text-primary)] font-serif">
                         {src.title}
                       </span>
-                      {src.year && (
+                      {(src.publication_year || src.year) && (
                         <span className="font-mono text-[var(--color-text-muted)]">
-                          ({src.year})
+                          ({src.publication_year || src.year})
                         </span>
                       )}
                     </div>
